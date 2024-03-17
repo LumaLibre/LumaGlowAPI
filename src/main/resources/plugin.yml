@@ -1,0 +1,90 @@
+name: LumaGlowAPI
+version: '${version}'
+description: 'Small plugin to manage glow colors'
+author: 'Jsinco'
+main: dev.jsinco.lumaglowapi.LumaGlowAPI
+api-version: '1.20'
+softdepend:
+  - PlaceholderAPI
+commands:
+  color:
+    description: Main command for LumaGlowAPI to color a player
+    usage: /<command> <color> [player]
+permissions:
+  lumaglowapi.reload:
+    description: Allows reloading of the config
+    default: op
+  lumaglowapi.colorother:
+    description: Allows use of colors on other players
+    default: op
+  lumaglowapi.color.all:
+    description: Allows use of all colors
+    default: op
+    children:
+      lumaglowapi.color.black: true
+      lumaglowapi.color.dark_blue: true
+      lumaglowapi.color.dark_green: true
+      lumaglowapi.color.dark_aqua: true
+      lumaglowapi.color.dark_red: true
+      lumaglowapi.color.dark_purple: true
+      lumaglowapi.color.gold: true
+      lumaglowapi.color.gray: true
+      lumaglowapi.color.dark_gray: true
+      lumaglowapi.color.blue: true
+      lumaglowapi.color.green: true
+      lumaglowapi.color.aqua: true
+      lumaglowapi.color.red: true
+      lumaglowapi.color.light_purple: true
+      lumaglowapi.color.yellow: true
+      lumaglowapi.color.white: true
+  lumaglowapi.color.black:
+    description: Allows use of a color
+    default: op
+  lumaglowapi.color.dark_blue:
+    description: Allows use of a color
+    default: op
+  lumaglowapi.color.dark_green:
+    description: Allows use of a color
+    default: op
+  lumaeglowapi.color.dark_green:
+    description: Allows use of a color
+    default: op
+  lumaglowapi.color.dark_aqua:
+    description: Allows use of a color
+    default: op
+  lumaglowapi.color.dark_red:
+    description: Allows use of a color
+    default: op
+  lumaglowapi.color.dark_purple:
+    description: Allows use of a color
+    default: op
+  lumaglowapi.color.gold:
+    description: Allows use of a color
+    default: op
+  lumaglowapi.color.gray:
+    description: Allows use of a color
+    default: op
+  lumaglowapi.color.dark_gray:
+    description: Allows use of a color
+    default: op
+  lumaglowapi.color.blue:
+    description: Allows use of a color
+    default: op
+  lumaglowapi.color.green:
+    description: Allows use of a color
+    default: op
+  lumaglowapi.color.aqua:
+    description: Allows use of a color
+    default: op
+  lumaglowapi.color.red:
+    description: Allows use of a color
+    default: op
+  lumaglowapi.color.light_purple:
+    description: Allows use of a color
+    default: op
+  lumaglowapi.color.yellow:
+    description: Allows use of a color
+    default: op
+  lumaglowapi.color.white:
+    description: Allows use of a color
+    default: op

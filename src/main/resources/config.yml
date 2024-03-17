@@ -1,0 +1,13 @@
+# If we should also add the player to the team when changing colors
+use-teams: false
+
+# Default colors by permission
+# This will be the default color of the player if they have no set color
+# Priority goes from top down, whatever permission is found first will be the color
+default-colors:
+  'group.ethereal': LIGHT_PURPLE
+  'group.seraphic': GREEN
+  'group.luminal': DARK_RED
+  'group.divine': AQUA
+  'group.arcane': RED
+  'group.default': GRAY
