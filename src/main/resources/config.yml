@@ -1,10 +1,16 @@
 # If we should also add the player to the team when changing colors
 use-teams: false
 
+placeholder-only-show-while-glowing: true
+
 # Default colors by permission
 # This will be the default color of the player if they have no set color
 # Priority goes from top down, whatever permission is found first will be the color
 default-colors:
+  'group.admin': RED
+  'group.mod': LIGHT_PURPLE
+  'group.helper': GREEN
+  'group.content': RED
   'group.ethereal': LIGHT_PURPLE
   'group.seraphic': GREEN
   'group.luminal': DARK_RED

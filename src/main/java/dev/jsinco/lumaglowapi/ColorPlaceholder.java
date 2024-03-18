@@ -7,6 +7,9 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 public class ColorPlaceholder extends PlaceholderExpansion {
+
+    private final LumaGlowAPI plugin = LumaGlowAPI.getInstance();
+
     @Override
     public @NotNull String getIdentifier() {
         return "lumaglowapi";
@@ -24,7 +27,7 @@ public class ColorPlaceholder extends PlaceholderExpansion {
 
     @Override
     public @Nullable String onPlaceholderRequest(Player player, @NotNull String params) {
-        if (player == null || !player.isGlowing()) {
+        if (player == null || (plugin.getConfig().getBoolean("placeholder-only-show-while-glowing") && !player.isGlowing())) {
             return "";
         }
 
