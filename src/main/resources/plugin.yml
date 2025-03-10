@@ -4,6 +4,8 @@ description: 'Small plugin to manage glow colors'
 author: 'Jsinco'
 main: dev.jsinco.lumaglowapi.LumaGlowAPI
 api-version: '1.20'
+depend:
+  - LumaCore
 softdepend:
   - PlaceholderAPI
 permissions:
