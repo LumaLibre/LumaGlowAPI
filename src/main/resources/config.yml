@@ -2,6 +2,7 @@
 use-teams: false
 
 placeholder-only-show-while-glowing: true
+color-to-show-while-not-glowing: WHITE
 
 # Default colors by permission
 # This will be the default color of the player if they have no set color

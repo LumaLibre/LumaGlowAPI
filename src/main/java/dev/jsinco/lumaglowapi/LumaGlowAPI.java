@@ -1,42 +1,30 @@
 package dev.jsinco.lumaglowapi;
 
+import dev.jsinco.luma.lumacore.manager.modules.ModuleManager;
+import dev.jsinco.lumaglowapi.colormanagers.ColorManager;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
-import org.bukkit.event.EventHandler;
-import org.bukkit.event.Listener;
-import org.bukkit.event.player.PlayerJoinEvent;
-import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.plugin.java.JavaPlugin;
 
-import java.util.ArrayList;
-import java.util.List;
-
-public final class LumaGlowAPI extends JavaPlugin implements Listener {
+public final class LumaGlowAPI extends JavaPlugin {
 
     private static LumaGlowAPI instance;
-    private static ColorPlaceholder colorPlaceholder = null;
+    private static ModuleManager moduleManager;
 
     @Override
     public void onEnable() {
         instance = this;
+        moduleManager = new ModuleManager(this);
         getConfig().options().copyDefaults();
         saveDefaultConfig();
 
 
         ColorManager.loadDefaultColorPermissions();
-        for (Player player : Bukkit.getOnlinePlayers()) {
-            ColorManager.updatePlayersColor(player);
-        }
+        Bukkit.getOnlinePlayers().forEach(ColorManager::updatePlayersColor);
 
 
-        if (Bukkit.getPluginManager().getPlugin("PlaceholderAPI") != null) {
-            colorPlaceholder = new ColorPlaceholder();
-            colorPlaceholder.register();
-        }
-
-        getCommand("color").setExecutor(new ColorCommand());
-        getServer().getPluginManager().registerEvents(this, this);
+        moduleManager.reflectivelyRegisterModules();
 
         Bukkit.getScheduler().runTaskTimerAsynchronously(this, () -> {
             for (Player player : Bukkit.getOnlinePlayers()) {
@@ -47,13 +35,20 @@ public final class LumaGlowAPI extends JavaPlugin implements Listener {
 
     @Override
     public void onDisable() {
-        if (colorPlaceholder != null) {
-            colorPlaceholder.unregister();
-        }
+        moduleManager.unregisterModules();
     }
 
     public static LumaGlowAPI getInstance() {
         return instance;
+    }
+
+
+    public static ChatColor chatColorFromString(String color) {
+        try {
+            return ChatColor.valueOf(color.toUpperCase());
+        } catch (IllegalArgumentException e) {
+            return ChatColor.WHITE;
+        }
     }
 
     public static String getColorCodeByChatColor(ChatColor color) {
@@ -80,13 +75,4 @@ public final class LumaGlowAPI extends JavaPlugin implements Listener {
         };
     }
 
-    @EventHandler
-    public void onPlayerJoin(PlayerJoinEvent event) {
-        ColorManager.updatePlayersColor(event.getPlayer());
-    }
-
-    @EventHandler
-    public void onPlayerQuit(PlayerQuitEvent event) {
-        ColorManager.clearPlayerColor(event.getPlayer());
-    }
 }

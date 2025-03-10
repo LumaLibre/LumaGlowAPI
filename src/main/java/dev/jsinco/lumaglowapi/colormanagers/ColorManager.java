@@ -1,6 +1,6 @@
-package dev.jsinco.lumaglowapi;
+package dev.jsinco.lumaglowapi.colormanagers;
 
-import org.bukkit.Bukkit;
+import dev.jsinco.lumaglowapi.LumaGlowAPI;
 import org.bukkit.ChatColor;
 import org.bukkit.NamespacedKey;
 import org.bukkit.entity.Player;
@@ -9,7 +9,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
 
-public abstract class ColorManager {
+public final class ColorManager {
     private final static LumaGlowAPI plugin = LumaGlowAPI.getInstance();
 
     private final static Map<UUID, ChatColor> playerColors = new HashMap<>();

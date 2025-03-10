@@ -1,5 +1,6 @@
-package dev.jsinco.lumaglowapi;
+package dev.jsinco.lumaglowapi.colormanagers;
 
+import dev.jsinco.lumaglowapi.LumaGlowAPI;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.entity.Entity;
@@ -11,7 +12,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
-public abstract class TeamColorManager {
+public final class TeamColorManager {
 
     private final static String TEAM_PREFIX = "LGA-";
     private final static Scoreboard board = Bukkit.getScoreboardManager().getMainScoreboard();

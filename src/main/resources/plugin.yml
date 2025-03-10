@@ -6,10 +6,6 @@ main: dev.jsinco.lumaglowapi.LumaGlowAPI
 api-version: '1.20'
 softdepend:
   - PlaceholderAPI
-commands:
-  color:
-    description: Main command for LumaGlowAPI to color a player
-    usage: /<command> <color> [player]
 permissions:
   lumaglowapi.reload:
     description: Allows reloading of the config
