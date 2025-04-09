@@ -55,6 +55,10 @@ public final class ColorManager {
         updatePlayersColor(player);
     }
 
+    public static void setTempPlayerColor(Player player, ChatColor color) {
+        playerColors.put(player.getUniqueId(), color);
+    }
+
     public static void removePlayerColor(Player player) {
         player.getPersistentDataContainer().remove(new NamespacedKey(plugin, "color"));
         updatePlayersColor(player);
