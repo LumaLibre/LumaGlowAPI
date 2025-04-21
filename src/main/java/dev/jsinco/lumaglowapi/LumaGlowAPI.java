@@ -25,12 +25,6 @@ public final class LumaGlowAPI extends JavaPlugin {
 
 
         moduleManager.reflectivelyRegisterModules();
-
-        Bukkit.getScheduler().runTaskTimerAsynchronously(this, () -> {
-            for (Player player : Bukkit.getOnlinePlayers()) {
-                ColorManager.updatePlayersColor(player);
-            }
-        }, 0, 100);
     }
 
     @Override
