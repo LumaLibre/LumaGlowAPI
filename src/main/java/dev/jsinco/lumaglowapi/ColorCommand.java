@@ -6,6 +6,7 @@ import dev.jsinco.luma.lumacore.manager.modules.AutoRegister;
 import dev.jsinco.luma.lumacore.manager.modules.RegisterType;
 import dev.jsinco.luma.lumacore.utility.Text;
 import dev.jsinco.lumaglowapi.colormanagers.ColorManager;
+import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
@@ -68,21 +69,20 @@ public class ColorCommand extends AbstractCommand {
             return true;
         }
 
-        ChatColor color;
-        try {
-            color = ChatColor.valueOf(arg.toUpperCase());
-        } catch (IllegalArgumentException e) {
+        NamedTextColor color = NamedTextColor.NAMES.value(arg.toUpperCase());
+        if (color == null) {
             Text.msg(sender,"Invalid color!");
             return true;
         }
 
-        if (!player.hasPermission("lumaglowapi.color." + color.name().toLowerCase())) {
+        if (!player.hasPermission("lumaglowapi.color." + color)) {
             Text.msg(sender,"You do not have permission to use that color!");
             return true;
         }
 
         ColorManager.setPlayerColor(player, color);
-        Text.msg(sender, "Color set to " + color + color.name().toLowerCase());
+        String n = color.toString().toLowerCase();
+        Text.msg(sender, "Color set to <" + n + ">" + n);
         return true;
     }
 
@@ -93,9 +93,8 @@ public class ColorCommand extends AbstractCommand {
         }
         List<String> tabCompletion = new ArrayList<>();
 
-        for (ChatColor color : ChatColor.values()) {
-            if (!color.isColor()) continue;
-            tabCompletion.add(color.name().toLowerCase());
+        for (NamedTextColor color : NamedTextColor.NAMES.values()) {
+            tabCompletion.add(color.toString().toLowerCase());
         }
         if (sender.hasPermission("lumaglowapi.reload")) {
             tabCompletion.add("reload");

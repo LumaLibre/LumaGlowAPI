@@ -1,6 +1,7 @@
 package dev.jsinco.lumaglowapi.colormanagers;
 
 import dev.jsinco.lumaglowapi.LumaGlowAPI;
+import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.entity.Entity;
@@ -19,16 +20,16 @@ public final class TeamColorManager {
     private final static Map<UUID, Integer> teamTickTasks = new HashMap<>();
 
 
-    public static Team getColorTeam(ChatColor color) {
-        Team team = board.getTeam(TEAM_PREFIX + color.name());
+    public static Team getColorTeam(NamedTextColor color) {
+        Team team = board.getTeam(TEAM_PREFIX + color.toString());
         if (team == null) {
-            team = board.registerNewTeam(TEAM_PREFIX + color.name());
-            team.setColor(color);
+            team = board.registerNewTeam(TEAM_PREFIX + color);
+            team.color(color);
         }
         return team;
     }
 
-    public static void addTeamColor(Entity entity, ChatColor color) {
+    public static void addTeamColor(Entity entity, NamedTextColor color) {
         Team team = getColorTeam(color);
         team.addEntry(entity.getUniqueId().toString());
     }
@@ -40,7 +41,7 @@ public final class TeamColorManager {
         }
     }
 
-    public static void addToTeamForTicksPersistent(Entity entity, ChatColor color, long ticks) {
+    public static void addToTeamForTicksPersistent(Entity entity, NamedTextColor color, long ticks) {
         UUID uuid = entity.getUniqueId();
         if (teamTickTasks.containsKey(uuid)) {
             Bukkit.getScheduler().cancelTask(teamTickTasks.get(uuid));
@@ -52,7 +53,7 @@ public final class TeamColorManager {
         }, ticks));
     }
 
-    public static void addToTeamForTicks(Entity entity, ChatColor color, long ticks) {
+    public static void addToTeamForTicks(Entity entity, NamedTextColor color, long ticks) {
         addTeamColor(entity, color);
         Bukkit.getScheduler().scheduleSyncDelayedTask(LumaGlowAPI.getInstance(), () -> removeTeamColor(entity), ticks);
     }
