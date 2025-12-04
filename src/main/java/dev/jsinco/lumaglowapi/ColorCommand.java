@@ -75,14 +75,16 @@ public class ColorCommand extends AbstractCommand {
             Text.msg(sender,"Invalid color!");
             return true;
         }
+        String colorName = color.name().toLowerCase();
 
-        if (!player.hasPermission("lumaglowapi.color." + color.name().toLowerCase())) {
+        if (!player.hasPermission("lumaglowapi.color." + colorName)) {
             Text.msg(sender,"You do not have permission to use that color!");
             return true;
         }
 
         ColorManager.setPlayerColor(player, color);
-        Text.msg(sender, "Color set to " + color + color.name().toLowerCase());
+
+        Text.msg(sender, "Color set to <" + colorName + ">" + colorName);
         return true;
     }
 

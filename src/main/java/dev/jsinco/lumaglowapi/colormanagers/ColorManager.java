@@ -57,6 +57,10 @@ public final class ColorManager {
 
     public static void setTempPlayerColor(Player player, ChatColor color) {
         playerColors.put(player.getUniqueId(), color);
+
+        if (plugin.getConfig().getBoolean("use-teams")) {
+            TeamColorManager.addTeamColor(player, color);
+        }
     }
 
     public static void removePlayerColor(Player player) {

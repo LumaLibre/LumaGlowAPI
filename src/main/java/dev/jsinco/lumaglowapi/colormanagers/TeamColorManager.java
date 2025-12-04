@@ -4,6 +4,7 @@ import dev.jsinco.lumaglowapi.LumaGlowAPI;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.entity.Entity;
+import org.bukkit.entity.Player;
 import org.bukkit.scoreboard.Scoreboard;
 import org.bukkit.scoreboard.Team;
 import org.jetbrains.annotations.Nullable;
@@ -30,12 +31,22 @@ public final class TeamColorManager {
 
     public static void addTeamColor(Entity entity, ChatColor color) {
         Team team = getColorTeam(color);
-        team.addEntry(entity.getUniqueId().toString());
+        if (entity instanceof Player player) {
+            team.addPlayer(player);
+        } else {
+            team.addEntry(entity.getUniqueId().toString());
+        }
     }
 
     public static void removeTeamColor(Entity entity) {
         Team team = board.getEntryTeam(entity.getUniqueId().toString());
-        if (team != null) {
+        if (team == null) {
+            return;
+        }
+
+        if (entity instanceof Player player) {
+            team.removePlayer(player);
+        } else {
             team.removeEntry(entity.getUniqueId().toString());
         }
     }
