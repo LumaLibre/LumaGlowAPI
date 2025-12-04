@@ -1,6 +1,7 @@
 package dev.jsinco.lumaglowapi.colormanagers;
 
 import dev.jsinco.lumaglowapi.LumaGlowAPI;
+import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.ChatColor;
 import org.bukkit.NamespacedKey;
 import org.bukkit.entity.Player;
@@ -9,6 +10,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
 
+// TODO: Convert to use Kyori Adventure for colors
 public final class ColorManager {
     private final static LumaGlowAPI plugin = LumaGlowAPI.getInstance();
 
@@ -55,12 +57,20 @@ public final class ColorManager {
         updatePlayersColor(player);
     }
 
+    public static void setPlayerColor(Player player, NamedTextColor color) {
+        setPlayerColor(player, ChatColor.valueOf(color.toString().toUpperCase()));
+    }
+
     public static void setTempPlayerColor(Player player, ChatColor color) {
         playerColors.put(player.getUniqueId(), color);
 
         if (plugin.getConfig().getBoolean("use-teams")) {
             TeamColorManager.addTeamColor(player, color);
         }
+    }
+
+    public static void setTempPlayerColor(Player player, NamedTextColor color) {
+        setTempPlayerColor(player, ChatColor.valueOf(color.toString().toUpperCase()));
     }
 
     public static void removePlayerColor(Player player) {
@@ -71,6 +81,15 @@ public final class ColorManager {
     @Nullable
     public static ChatColor getPlayerColor(Player player) {
         return playerColors.get(player.getUniqueId());
+    }
+
+    @Nullable
+    public static NamedTextColor playerColor(Player player) {
+        ChatColor chatColor = getPlayerColor(player);
+        if (chatColor != null) {
+            return NamedTextColor.NAMES.value(chatColor.name().toLowerCase());
+        }
+        return null;
     }
 
     public static void clearPlayerColor(Player player) {
