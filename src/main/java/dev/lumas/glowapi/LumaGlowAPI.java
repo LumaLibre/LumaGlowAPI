@@ -1,10 +1,9 @@
-package dev.jsinco.lumaglowapi;
+package dev.lumas.glowapi;
 
-import dev.jsinco.luma.lumacore.manager.modules.ModuleManager;
-import dev.jsinco.lumaglowapi.colormanagers.ColorManager;
+import dev.lumas.lumacore.manager.modules.ModuleManager;
+import dev.lumas.glowapi.colormanagers.ColorManager;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
-import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 
 public final class LumaGlowAPI extends JavaPlugin {

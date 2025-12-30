@@ -1,6 +1,6 @@
-package dev.jsinco.lumaglowapi.colormanagers;
+package dev.lumas.glowapi.colormanagers;
 
-import dev.jsinco.lumaglowapi.LumaGlowAPI;
+import dev.lumas.glowapi.LumaGlowAPI;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.entity.Entity;

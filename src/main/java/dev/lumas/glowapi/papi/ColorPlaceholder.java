@@ -1,11 +1,11 @@
-package dev.jsinco.lumaglowapi.papi;
+package dev.lumas.glowapi.papi;
 
-import dev.jsinco.luma.lumacore.manager.modules.AutoRegister;
-import dev.jsinco.luma.lumacore.manager.modules.RegisterType;
-import dev.jsinco.luma.lumacore.manager.placeholder.PlaceholderInfo;
-import dev.jsinco.luma.lumacore.manager.placeholder.SoloAbstractPlaceholder;
-import dev.jsinco.lumaglowapi.LumaGlowAPI;
-import dev.jsinco.lumaglowapi.colormanagers.ColorManager;
+import dev.lumas.lumacore.manager.modules.AutoRegister;
+import dev.lumas.lumacore.manager.modules.RegisterType;
+import dev.lumas.lumacore.manager.placeholder.PlaceholderInfo;
+import dev.lumas.lumacore.manager.placeholder.SoloAbstractPlaceholder;
+import dev.lumas.glowapi.LumaGlowAPI;
+import dev.lumas.glowapi.colormanagers.ColorManager;
 import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;

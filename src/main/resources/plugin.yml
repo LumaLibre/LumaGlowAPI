@@ -2,7 +2,7 @@ name: LumaGlowAPI
 version: '${version}'
 description: 'Small plugin to manage glow colors'
 author: 'Jsinco'
-main: dev.jsinco.lumaglowapi.LumaGlowAPI
+main: dev.lumas.glowapi.LumaGlowAPI
 api-version: '1.20'
 depend:
   - LumaCore

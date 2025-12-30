@@ -1,11 +1,11 @@
-package dev.jsinco.lumaglowapi;
+package dev.lumas.glowapi;
 
-import dev.jsinco.luma.lumacore.manager.commands.AbstractCommand;
-import dev.jsinco.luma.lumacore.manager.commands.CommandInfo;
-import dev.jsinco.luma.lumacore.manager.modules.AutoRegister;
-import dev.jsinco.luma.lumacore.manager.modules.RegisterType;
-import dev.jsinco.luma.lumacore.utility.Text;
-import dev.jsinco.lumaglowapi.colormanagers.ColorManager;
+import dev.lumas.lumacore.manager.commands.AbstractCommand;
+import dev.lumas.lumacore.manager.commands.CommandInfo;
+import dev.lumas.lumacore.manager.modules.AutoRegister;
+import dev.lumas.lumacore.manager.modules.RegisterType;
+import dev.lumas.lumacore.utility.Text;
+import dev.lumas.glowapi.colormanagers.ColorManager;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;

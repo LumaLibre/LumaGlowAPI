@@ -1,8 +1,8 @@
-package dev.jsinco.lumaglowapi;
+package dev.lumas.glowapi;
 
-import dev.jsinco.luma.lumacore.manager.modules.AutoRegister;
-import dev.jsinco.luma.lumacore.manager.modules.RegisterType;
-import dev.jsinco.lumaglowapi.colormanagers.ColorManager;
+import dev.lumas.lumacore.manager.modules.AutoRegister;
+import dev.lumas.lumacore.manager.modules.RegisterType;
+import dev.lumas.glowapi.colormanagers.ColorManager;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
