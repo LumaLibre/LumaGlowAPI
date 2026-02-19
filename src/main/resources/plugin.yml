@@ -4,17 +4,30 @@ description: 'Small plugin to manage glow colors'
 author: 'Jsinco'
 main: dev.lumas.glowapi.LumaGlowAPI
 api-version: '1.20'
+folia-supported: true
 depend:
   - LumaCore
 softdepend:
   - PlaceholderAPI
 permissions:
-  lumaglowapi.reload:
+  lumaglowapi.command:
+    description: Allows use of the /lumaglowapi command
+    default: op
+  lumaglowapi.command.reload:
     description: Allows reloading of the config
     default: op
-  lumaglowapi.colorother:
+    children:
+      lumaglowapi.command: true
+  lumaglowapi.command.color:
+    description: Allows use of the /lumaglowapi color command
+    default: op
+    children:
+      lumaglowapi.command: true
+  lumaglowapi.command.color.other:
     description: Allows use of colors on other players
     default: op
+    children:
+      lumaglowapi.command: true
   lumaglowapi.color.all:
     description: Allows use of all colors
     default: op

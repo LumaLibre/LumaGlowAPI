@@ -1,11 +1,16 @@
 package dev.lumas.glowapi.papi;
 
+import dev.lumas.glowapi.GlowColorManager;
+import dev.lumas.glowapi.config.Config;
+import dev.lumas.glowapi.model.GlowColorHandler;
+import dev.lumas.glowapi.model.PlaceHolderTeamHandler;
 import dev.lumas.lumacore.manager.modules.AutoRegister;
 import dev.lumas.lumacore.manager.modules.RegisterType;
 import dev.lumas.lumacore.manager.placeholder.PlaceholderInfo;
 import dev.lumas.lumacore.manager.placeholder.SoloAbstractPlaceholder;
 import dev.lumas.glowapi.LumaGlowAPI;
-import dev.lumas.glowapi.colormanagers.ColorManager;
+import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.format.TextColor;
 import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
@@ -15,35 +20,65 @@ import org.jetbrains.annotations.Nullable;
 @PlaceholderInfo(
         identifier = "lumaglowapi",
         author = "Jsinco",
-        version = "1.0.0"
+        version = "2.0.0"
 )
 public class ColorPlaceholder extends SoloAbstractPlaceholder {
-
-    private static final LumaGlowAPI plugin = LumaGlowAPI.getInstance();
 
     @Override
     public @Nullable String onPlaceholderRequest(Player player, @NotNull String params) {
         if (player == null) {
-            return "";
-        }
-        if (!player.isGlowing()) {
-            if (plugin.getConfig().getBoolean("placeholder-only-show-while-glowing")) {
-                return "";
-            }
-            String colorShowWhileNotGlowing = plugin.getConfig().getString("color-to-show-while-not-glowing");
-            if (colorShowWhileNotGlowing != null) {
-                ChatColor chatColor = LumaGlowAPI.chatColorFromString(colorShowWhileNotGlowing);
-                return ChatColor.translateAlternateColorCodes('&', LumaGlowAPI.getColorCodeByChatColor(chatColor));
-            }
-        }
-        if (plugin.getConfig().getBoolean("placeholder-only-show-while-glowing") && !player.isGlowing()) {
-            return "";
+            return null;
         }
 
-        ChatColor color = ColorManager.getPlayerColor(player);
+        Config config = LumaGlowAPI.getOkaeriConfig();
+
+        TextColor color;
+
+        if (!player.isGlowing()) {
+            if (config.isOnlyShowPlaceholderWhenGlowing()) {
+                return "";
+            }
+            color = config.getColorToShowWhileNotGlowing();
+        } else {
+            GlowColorHandler handler = GlowColorManager.getInstance().handler();
+            if (!(handler instanceof PlaceHolderTeamHandler)) {
+                return "";
+            }
+            color = handler.getColor(player);
+        }
+
+
         if (color != null) {
-            return ChatColor.translateAlternateColorCodes('&', LumaGlowAPI.getColorCodeByChatColor(color));
+            @SuppressWarnings("deprecation")
+            String chatColor = ChatColor.translateAlternateColorCodes('&', toSimple(color));
+            return chatColor;
         }
         return "";
+    }
+
+
+    private String toSimple(TextColor textColor) {
+        if (!(textColor instanceof NamedTextColor namedTextColor)) {
+            return "&f";
+        }
+
+        return switch (namedTextColor.toString()) {
+            case "aqua" -> "&b";
+            case "black" -> "&0";
+            case "blue" -> "&9";
+            case "dark_aqua" -> "&3";
+            case "dark_blue" -> "&1";
+            case "dark_gray" -> "&8";
+            case "dark_green" -> "&2";
+            case "dark_purple" -> "&5";
+            case "dark_red" -> "&4";
+            case "gold" -> "&6";
+            case "gray" -> "&7";
+            case "green" -> "&a";
+            case "light_purple" -> "&d";
+            case "red" -> "&c";
+            case "yellow" -> "&e";
+            default -> "&f";
+        };
     }
 }

@@ -1,98 +1,68 @@
 package dev.lumas.glowapi.colormanagers;
 
-import dev.lumas.glowapi.LumaGlowAPI;
+import dev.lumas.glowapi.GlowColorManager;
+import dev.lumas.glowapi.model.GlowColorHandler;
 import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.format.TextColor;
 import org.bukkit.ChatColor;
-import org.bukkit.NamespacedKey;
 import org.bukkit.entity.Player;
-import org.bukkit.persistence.PersistentDataType;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.*;
-
-// TODO: Convert to use Kyori Adventure for colors
+@Deprecated(forRemoval = true)
 public final class ColorManager {
-    private final static LumaGlowAPI plugin = LumaGlowAPI.getInstance();
 
-    private final static Map<UUID, ChatColor> playerColors = new HashMap<>();
-    private final static LinkedHashMap<String, ChatColor> defaultColorPermissionsList = new LinkedHashMap<>();
+    private static final GlowColorHandler HANDLER = GlowColorManager.getInstance().handler();
 
-    public static void loadDefaultColorPermissions() {
-        defaultColorPermissionsList.clear();
-        for (String permissionOrKey : plugin.getConfig().getConfigurationSection("default-colors").getKeys(true)) {
-            if (permissionOrKey.equals("group")) {
-                continue;
-            }
-            defaultColorPermissionsList.put(permissionOrKey, ChatColor.valueOf(plugin.getConfig().getString("default-colors." + permissionOrKey)));
-        }
-    }
 
     public static boolean updatePlayersColor(Player player) {
-        ChatColor color = null;
-
-        if (player.getPersistentDataContainer().has(new NamespacedKey(plugin, "color"), PersistentDataType.STRING)) {
-            color = ChatColor.valueOf(player.getPersistentDataContainer().get(new NamespacedKey(plugin, "color"), PersistentDataType.STRING));
-        } else {
-            for (String permission : defaultColorPermissionsList.keySet()) {
-                if (player.hasPermission(permission)) {
-                    color = defaultColorPermissionsList.get(permission);
-                    break;
-                }
-            }
-        }
-
-        if (color != null) {
-            playerColors.put(player.getUniqueId(), color);
-
-            if (plugin.getConfig().getBoolean("use-teams")) {
-                TeamColorManager.addTeamColor(player, color);
-            }
-            return true;
-        }
-        return false;
+        HANDLER.update(player);
+        return true;
     }
 
     public static void setPlayerColor(Player player, ChatColor color) {
-        player.getPersistentDataContainer().set(new NamespacedKey(plugin, "color"), PersistentDataType.STRING, color.name());
-        updatePlayersColor(player);
+        HANDLER.setColor(player, fromChatColor(color));
     }
 
     public static void setPlayerColor(Player player, NamedTextColor color) {
-        setPlayerColor(player, ChatColor.valueOf(color.toString().toUpperCase()));
+        HANDLER.setColor(player, color);
     }
 
     public static void setTempPlayerColor(Player player, ChatColor color) {
-        playerColors.put(player.getUniqueId(), color);
-
-        if (plugin.getConfig().getBoolean("use-teams")) {
-            TeamColorManager.addTeamColor(player, color);
-        }
+        HANDLER.setTransientColor(player, fromChatColor(color));
     }
 
     public static void setTempPlayerColor(Player player, NamedTextColor color) {
-        setTempPlayerColor(player, ChatColor.valueOf(color.toString().toUpperCase()));
+        HANDLER.setTransientColor(player, color);
     }
 
     public static void removePlayerColor(Player player) {
-        player.getPersistentDataContainer().remove(new NamespacedKey(plugin, "color"));
-        updatePlayersColor(player);
+        HANDLER.removeColor(player);
     }
 
     @Nullable
     public static ChatColor getPlayerColor(Player player) {
-        return playerColors.get(player.getUniqueId());
+        return fromNamedTextColor(HANDLER.getColor(player));
     }
 
     @Nullable
     public static NamedTextColor playerColor(Player player) {
-        ChatColor chatColor = getPlayerColor(player);
-        if (chatColor != null) {
-            return NamedTextColor.NAMES.value(chatColor.name().toLowerCase());
-        }
-        return null;
+        return (NamedTextColor) HANDLER.getColor(player);
     }
 
     public static void clearPlayerColor(Player player) {
-        playerColors.remove(player.getUniqueId());
+        HANDLER.removeColor(player);
+    }
+
+
+
+    private static NamedTextColor fromChatColor(ChatColor color) {
+        return NamedTextColor.NAMES.value(color.name().toLowerCase());
+    }
+
+    private static ChatColor fromNamedTextColor(TextColor color) {
+        if (null == color) {
+            return null;
+        }
+        return ChatColor.valueOf(color.toString().toUpperCase());
     }
 }

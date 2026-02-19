@@ -1,27 +1,49 @@
 package dev.lumas.glowapi;
 
+import dev.lumas.glowapi.config.Config;
 import dev.lumas.lumacore.manager.modules.ModuleManager;
-import dev.lumas.glowapi.colormanagers.ColorManager;
+import dev.lumas.lumacore.utility.ContextLogger;
+import eu.okaeri.configs.ConfigManager;
+import eu.okaeri.configs.OkaeriConfig;
+import eu.okaeri.configs.serdes.standard.StandardSerdes;
+import eu.okaeri.configs.yaml.snakeyaml.YamlSnakeYamlConfigurer;
+import lombok.Getter;
+import net.megavex.scoreboardlibrary.api.ScoreboardLibrary;
+import net.megavex.scoreboardlibrary.api.exception.NoPacketAdapterAvailableException;
+import net.megavex.scoreboardlibrary.api.noop.NoopScoreboardLibrary;
 import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
 import org.bukkit.plugin.java.JavaPlugin;
 
 public final class LumaGlowAPI extends JavaPlugin {
 
+    private static final ContextLogger LOGGER = ContextLogger.getLogger();
+
+    @Getter
     private static LumaGlowAPI instance;
     private static ModuleManager moduleManager;
+    @Getter
+    private static Config okaeriConfig;
+    @Getter
+    private static ScoreboardLibrary scoreboardLibrary;
 
     @Override
     public void onEnable() {
         instance = this;
         moduleManager = new ModuleManager(this);
-        getConfig().options().copyDefaults();
-        saveDefaultConfig();
+        okaeriConfig = loadOkaeriFile(Config.class, "config.yml");
 
+        try {
+            scoreboardLibrary = ScoreboardLibrary.loadScoreboardLibrary(this);
+        } catch (NoPacketAdapterAvailableException e) {
+            scoreboardLibrary = new NoopScoreboardLibrary();
+            LOGGER.error("Using NoopScoreboardLibrary.");
+        }
 
-        ColorManager.loadDefaultColorPermissions();
-        Bukkit.getOnlinePlayers().forEach(ColorManager::updatePlayersColor);
-
+        Bukkit.getOnlinePlayers().forEach(player -> {
+            GlowColorManager manager = GlowColorManager.getInstance();
+            manager.playerJoinHook(player);
+            manager.update(player);
+        });
 
         moduleManager.reflectivelyRegisterModules();
     }
@@ -29,43 +51,19 @@ public final class LumaGlowAPI extends JavaPlugin {
     @Override
     public void onDisable() {
         moduleManager.unregisterModules();
+        GlowColorManager.getInstance().shutdownHook();
+        scoreboardLibrary.close();
     }
 
-    public static LumaGlowAPI getInstance() {
-        return instance;
+    public <T extends OkaeriConfig> T loadOkaeriFile(Class<T> clazz, String fileName) {
+        return ConfigManager.create(clazz, it -> {
+            it.withConfigurer(new YamlSnakeYamlConfigurer(), new StandardSerdes());
+            it.withRemoveOrphans(false);
+            it.withBindFile(this.getDataPath().resolve(fileName));
+            it.saveDefaults();
+            it.load(true);
+        });
     }
 
-
-    public static ChatColor chatColorFromString(String color) {
-        try {
-            return ChatColor.valueOf(color.toUpperCase());
-        } catch (IllegalArgumentException e) {
-            return ChatColor.WHITE;
-        }
-    }
-
-    public static String getColorCodeByChatColor(ChatColor color) {
-        if (color == null) {
-            return "&f";
-        }
-        return switch (color) {
-            case AQUA -> "&b";
-            case BLACK -> "&0";
-            case BLUE -> "&9";
-            case DARK_AQUA -> "&3";
-            case DARK_BLUE -> "&1";
-            case DARK_GRAY -> "&8";
-            case DARK_GREEN -> "&2";
-            case DARK_PURPLE -> "&5";
-            case DARK_RED -> "&4";
-            case GOLD -> "&6";
-            case GRAY -> "&7";
-            case GREEN -> "&a";
-            case LIGHT_PURPLE -> "&d";
-            case RED -> "&c";
-            case YELLOW -> "&e";
-            default -> "&f";
-        };
-    }
 
 }

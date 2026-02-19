@@ -6,6 +6,7 @@ import java.nio.charset.Charset
 plugins {
     id("java")
     id("maven-publish")
+    id("io.freefair.lombok") version "9.2.0"
 }
 
 group = "dev.lumas.glowapi"
@@ -17,12 +18,21 @@ repositories {
     maven("https://oss.sonatype.org/content/groups/public/")
     maven("https://repo.extendedclip.com/content/repositories/placeholderapi/")
     maven("https://repo.jsinco.dev/releases")
+    maven("https://repo.okaeri.cloud/releases")
 }
 
 dependencies {
+    val scoreboardLibraryVersion = "2.5.0"
+    implementation("net.megavex:scoreboard-library-api:$scoreboardLibraryVersion")
+    implementation("net.megavex:scoreboard-library-implementation:$scoreboardLibraryVersion")
+    implementation("net.megavex:scoreboard-library-modern:$scoreboardLibraryVersion")
+
+    implementation("eu.okaeri:okaeri-configs-yaml-snakeyaml:6.1.0-beta.1")
+
+
     compileOnly("io.papermc.paper:paper-api:1.21.4-R0.1-SNAPSHOT")
     compileOnly("me.clip:placeholderapi:2.11.6")
-    compileOnly("dev.lumas.lumacore:LumaCore:d56563b")
+    compileOnly("dev.lumas.lumacore:LumaCore:d774bc6")
     implementation("org.jetbrains:annotations:24.0.0")
 }
 
