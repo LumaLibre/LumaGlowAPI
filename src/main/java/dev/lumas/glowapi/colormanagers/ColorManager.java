@@ -1,7 +1,6 @@
 package dev.lumas.glowapi.colormanagers;
 
 import dev.lumas.glowapi.GlowColorManager;
-import dev.lumas.glowapi.model.GlowColorHandler;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextColor;
 import org.bukkit.ChatColor;
@@ -11,46 +10,46 @@ import org.jetbrains.annotations.Nullable;
 @Deprecated(forRemoval = true)
 public final class ColorManager {
 
-    private static final GlowColorHandler HANDLER = GlowColorManager.getInstance().handler();
+    private static final GlowColorManager DELEGATE_HANDLER = GlowColorManager.getInstance();
 
 
     public static boolean updatePlayersColor(Player player) {
-        HANDLER.update(player);
+        DELEGATE_HANDLER.update(player);
         return true;
     }
 
     public static void setPlayerColor(Player player, ChatColor color) {
-        HANDLER.setColor(player, fromChatColor(color));
+        DELEGATE_HANDLER.setColor(player, fromChatColor(color));
     }
 
     public static void setPlayerColor(Player player, NamedTextColor color) {
-        HANDLER.setColor(player, color);
+        DELEGATE_HANDLER.setColor(player, color);
     }
 
     public static void setTempPlayerColor(Player player, ChatColor color) {
-        HANDLER.setTransientColor(player, fromChatColor(color));
+        DELEGATE_HANDLER.setTransientColor(player, fromChatColor(color));
     }
 
     public static void setTempPlayerColor(Player player, NamedTextColor color) {
-        HANDLER.setTransientColor(player, color);
+        DELEGATE_HANDLER.setTransientColor(player, color);
     }
 
     public static void removePlayerColor(Player player) {
-        HANDLER.removeColor(player);
+        DELEGATE_HANDLER.removeColor(player);
     }
 
     @Nullable
     public static ChatColor getPlayerColor(Player player) {
-        return fromNamedTextColor(HANDLER.getColor(player));
+        return fromNamedTextColor(DELEGATE_HANDLER.getColor(player));
     }
 
     @Nullable
     public static NamedTextColor playerColor(Player player) {
-        return (NamedTextColor) HANDLER.getColor(player);
+        return (NamedTextColor) DELEGATE_HANDLER.getColor(player);
     }
 
     public static void clearPlayerColor(Player player) {
-        HANDLER.removeColor(player);
+        DELEGATE_HANDLER.removeColor(player);
     }
 
 
