@@ -1,6 +1,6 @@
 package dev.lumas.glowapi.listeners;
 
-import dev.lumas.glowapi.GlowColorManager;
+import dev.lumas.glowapi.model.GlowColorManager;
 import dev.lumas.lumacore.manager.modules.AutoRegister;
 import dev.lumas.lumacore.manager.modules.RegisterType;
 import org.bukkit.entity.Player;

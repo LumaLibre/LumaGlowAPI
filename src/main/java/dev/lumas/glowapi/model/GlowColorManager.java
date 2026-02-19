@@ -1,10 +1,7 @@
-package dev.lumas.glowapi;
+package dev.lumas.glowapi.model;
 
+import dev.lumas.glowapi.LumaGlowAPI;
 import dev.lumas.glowapi.config.Config;
-import dev.lumas.glowapi.model.BukkitTeamHandler;
-import dev.lumas.glowapi.model.GlowColorHandler;
-import dev.lumas.glowapi.model.PacketTeamHandler;
-import dev.lumas.glowapi.model.PlaceHolderTeamHandler;
 import lombok.experimental.Delegate;
 
 public record GlowColorManager(@Delegate GlowColorHandler handler) {

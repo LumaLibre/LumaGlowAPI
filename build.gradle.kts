@@ -69,6 +69,10 @@ tasks {
     }
 }
 
+java {
+    withSourcesJar()
+}
+
 publishing {
     repositories {
         maven {
@@ -86,12 +90,10 @@ publishing {
     }
     publications {
         create<MavenPublication>("maven") {
+            from(components["java"])
             groupId = project.group.toString()
             artifactId = project.name
             version = project.version.toString()
-            artifact(tasks.jar.get().archiveFile) {
-                builtBy(tasks.jar)
-            }
         }
     }
 }

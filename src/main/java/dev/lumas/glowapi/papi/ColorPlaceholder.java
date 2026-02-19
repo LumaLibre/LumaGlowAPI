@@ -1,14 +1,14 @@
 package dev.lumas.glowapi.papi;
 
-import dev.lumas.glowapi.GlowColorManager;
+import dev.lumas.glowapi.LumaGlowAPI;
 import dev.lumas.glowapi.config.Config;
 import dev.lumas.glowapi.model.GlowColorHandler;
+import dev.lumas.glowapi.model.GlowColorManager;
 import dev.lumas.glowapi.model.PlaceHolderTeamHandler;
 import dev.lumas.lumacore.manager.modules.AutoRegister;
 import dev.lumas.lumacore.manager.modules.RegisterType;
 import dev.lumas.lumacore.manager.placeholder.PlaceholderInfo;
 import dev.lumas.lumacore.manager.placeholder.SoloAbstractPlaceholder;
-import dev.lumas.glowapi.LumaGlowAPI;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextColor;
 import org.bukkit.ChatColor;

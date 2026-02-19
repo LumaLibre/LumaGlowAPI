@@ -2,6 +2,7 @@ package dev.lumas.glowapi;
 
 import dev.lumas.glowapi.config.Config;
 import dev.lumas.glowapi.config.NamedTextColorTransformer;
+import dev.lumas.glowapi.model.GlowColorManager;
 import dev.lumas.lumacore.manager.modules.ModuleManager;
 import dev.lumas.lumacore.utility.ContextLogger;
 import eu.okaeri.configs.ConfigManager;
@@ -31,7 +32,7 @@ public final class LumaGlowAPI extends JavaPlugin {
     public void onEnable() {
         instance = this;
         moduleManager = new ModuleManager(this);
-        okaeriConfig = loadOkaeriFile(Config.class, "new-config.yml");
+        okaeriConfig = loadOkaeriFile(Config.class, "config.yml");
 
         try {
             scoreboardLibrary = ScoreboardLibrary.loadScoreboardLibrary(this);

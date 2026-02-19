@@ -1,6 +1,6 @@
 package dev.lumas.glowapi.colormanagers;
 
-import dev.lumas.glowapi.GlowColorManager;
+import dev.lumas.glowapi.model.GlowColorManager;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextColor;
 import org.bukkit.ChatColor;
