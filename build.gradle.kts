@@ -7,6 +7,7 @@ plugins {
     id("java")
     id("maven-publish")
     id("io.freefair.lombok") version "9.2.0"
+    id("com.gradleup.shadow") version "9.3.1"
 }
 
 group = "dev.lumas.glowapi"
@@ -26,7 +27,6 @@ dependencies {
     implementation("net.megavex:scoreboard-library-api:$scoreboardLibraryVersion")
     implementation("net.megavex:scoreboard-library-implementation:$scoreboardLibraryVersion")
     implementation("net.megavex:scoreboard-library-modern:$scoreboardLibraryVersion")
-
     implementation("eu.okaeri:okaeri-configs-yaml-snakeyaml:6.1.0-beta.1")
 
 
@@ -49,6 +49,23 @@ tasks {
             "beginToken" to "\${",
             "endToken" to "}"
         )).filteringCharset = "UTF-8"
+    }
+
+    shadowJar {
+        val pack = "dev.lumas.glowapi.libs"
+        relocate("net.megavex.scoreboardlibrary", "$pack.scoreboardlibrary")
+        relocate("eu.okaeri", "$pack.okaeri.configs")
+
+        archiveClassifier.set("")
+        archiveVersion.set("")
+    }
+
+    jar {
+        enabled = false
+    }
+
+    build {
+        dependsOn(shadowJar)
     }
 }
 
