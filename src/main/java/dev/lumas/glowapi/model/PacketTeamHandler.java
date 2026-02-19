@@ -30,6 +30,7 @@ public class PacketTeamHandler implements GlowColorHandler {
     public PacketTeamHandler(@NotNull String teamNameFormat, @NotNull String transientTeamNameFormat) {
         Preconditions.checkArgument(teamNameFormat.contains("%s"), "Team name format must contain a %s for the color name");
         Preconditions.checkArgument(transientTeamNameFormat.contains("%s"), "Transient team name format must contain a %s for the color name");
+
         this.teamManager = LumaGlowAPI.getScoreboardLibrary().createTeamManager();
         this.teamNameFormat = teamNameFormat;
         this.transientTeamNameFormat = transientTeamNameFormat;
@@ -37,11 +38,11 @@ public class PacketTeamHandler implements GlowColorHandler {
     }
 
     public PacketTeamHandler(@NotNull String teamNameFormat) {
-        this(teamNameFormat, "LGAT-%s");
+        this(teamNameFormat, TRANSIENT_TEAM_FORMAT);
     }
 
     public PacketTeamHandler() {
-        this("LGA-%s");
+        this(TEAM_FORMAT);
     }
 
     @Override
@@ -83,7 +84,6 @@ public class PacketTeamHandler implements GlowColorHandler {
 
         ScoreboardTeam applicableTeam = getApplicableTeam(entity);
         if (applicableTeam != null) {
-            System.out.println("removed from team " + applicableTeam);
             removeEntry(applicableTeam, entity);
         }
 
@@ -99,22 +99,29 @@ public class PacketTeamHandler implements GlowColorHandler {
     @Override
     public @Nullable TextColor getColor(Entity entity) {
         ScoreboardTeam applicableTeam = getApplicableTeam(entity);
-        return getColor(applicableTeam, entity);
+        if (applicableTeam != null) {
+            return applicableTeam.defaultDisplay().playerColor();
+        }
+
+
+        TextColor storedColor = getStoredColor(entity);
+        if (storedColor != null) {
+            return storedColor;
+        }
+
+        return getDefaultColor(entity);
     }
 
     private void update(ScoreboardTeam applicable, Entity entity) {
-        System.out.println("APPLICABLE:" + applicable);
         if (applicable != null && transientTeams.contains(applicable)) {
             removeEntry(applicable, entity);
         }
 
-        TextColor color = getColor(applicable, entity);
-        System.out.println("COLOR:" + color);
-        if (color instanceof NamedTextColor namedColor) {
-            addEntry(getTeam(namedColor), entity);
-        } else if (color != null) {
-            LOGGER.error("Bad color " + color + " for entity " + entity);
+        NamedTextColor newColor = getStoredColor(entity);
+        if (newColor == null) {
+            newColor = (NamedTextColor) getDefaultColor(entity);
         }
+        addEntry(getTeam(newColor), entity);
     }
 
 
@@ -137,23 +144,11 @@ public class PacketTeamHandler implements GlowColorHandler {
     }
 
 
-    private @Nullable TextColor getColor(@Nullable ScoreboardTeam applicable, Entity entity) {
-        if (applicable != null) {
-            return applicable.defaultDisplay().playerColor();
-        }
-
-        TextColor storedColor = getStoredColor(entity);
-        if (storedColor != null) {
-            return storedColor;
-        }
-
-        return getDefaultColor(entity);
-    }
-
-
     private @Nullable ScoreboardTeam getApplicableTeam(Entity entity) {
+        String entry = entity instanceof Player player ? player.getName() : entity.getUniqueId().toString();
+
         for (ScoreboardTeam team : teamManager.teams()) {
-            if (team.defaultDisplay().entries().contains(entity.getUniqueId().toString())) {
+            if (team.defaultDisplay().entries().contains(entry)) {
                 return team;
             }
         }
@@ -197,19 +192,19 @@ public class PacketTeamHandler implements GlowColorHandler {
 
     @ApiStatus.Internal
     @Override
-    public void playerJoinHook(Player player) {
+    public void addPlayer(Player player) {
         teamManager.addPlayer(player);
     }
 
     @ApiStatus.Internal
     @Override
-    public void playerQuitHook(Player player) {
+    public void removePlayer(Player player) {
         teamManager.removePlayer(player);
     }
 
     @ApiStatus.Internal
     @Override
-    public void shutdownHook() {
+    public void close() {
         teamManager.close();
     }
 }

@@ -11,7 +11,7 @@ plugins {
 }
 
 group = "dev.lumas.glowapi"
-version = getGitCommitHashShort()
+version = commitHash()
 
 repositories {
     mavenCentral()
@@ -79,7 +79,6 @@ publishing {
             name = "jsinco-repo"
             url = uri("https://repo.jsinco.dev/releases")
             credentials(PasswordCredentials::class) {
-                // get from environment
                 username = System.getenv("REPO_USERNAME")
                 password = System.getenv("REPO_PASSWORD")
             }
@@ -98,15 +97,14 @@ publishing {
     }
 }
 
-fun getGitCommitHashShort(): String = ByteArrayOutputStream().use { stream ->
+fun commitHash(): String = ByteArrayOutputStream().use { stream ->
     var branch = "none"
     try {
         project.exec {
             commandLine = listOf("git", "log", "-1", "--format=%h")
             standardOutput = stream
         }
-    } catch (e: Exception) {
-        println("Failed to get git commit hash! (No git repository found?)")
+    } catch (_: Exception) {
         return branch
     }
 

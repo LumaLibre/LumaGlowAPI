@@ -6,20 +6,24 @@ import dev.lumas.lumacore.manager.commands.CommandInfo;
 import dev.lumas.lumacore.manager.modules.AutoRegister;
 import dev.lumas.lumacore.manager.modules.RegisterType;
 import dev.lumas.lumacore.utility.Text;
+import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @AutoRegister(RegisterType.SUBCOMMAND)
 @CommandInfo(
         name = "color",
         description = "Change the color of yourself or another player",
         usage = "/<command> color <color!> <player?> -transient",
-        permission = "lumaglowapi.command.color"
+        permission = "lumaglowapi.command.color",
+        parent = CommandManager.class
 )
 public class ColorCommand implements SubCommand {
     @Override
@@ -31,7 +35,7 @@ public class ColorCommand implements SubCommand {
             return false;
         }
 
-        String colorString = args.getFirst();
+        String colorString = args.getFirst().toLowerCase();
 
         Player target = args.size() > 1 && sender.hasPermission("lumaglowapi.command.color.others")
                 ? Bukkit.getPlayerExact(args.get(1))
@@ -56,22 +60,24 @@ public class ColorCommand implements SubCommand {
 
         NamedTextColor color = NamedTextColor.NAMES.value(colorString);
         if (color == null) {
-            Text.msg(sender, "Invalid color.");
+            Text.msg(sender, "Invalid color %s.".formatted(colorString));
             return true;
         }
 
-        if (!sender.hasPermission("lumaglowapi.color." + colorString.toLowerCase())) {
+        if (!sender.hasPermission("lumaglowapi.color." + colorString)) {
             Text.msg(sender, "You don't have permission to use this color.");
             return true;
         }
 
+        Component component = Component.text("Color set to ")
+                .append(Component.text(toProperCase(colorString), color));
+
         if (args.contains("-transient")) {
             manager.setTransientColor(target, color);
-            Text.msg(sender, "Color set to " + colorString + " (transient).");
+            Text.msg(sender, component.append(Component.text(" (transient).")));
         } else {
-            System.out.println("Setting color of " + target.getName() + " to " + colorString);
             manager.setColor(target, color);
-            Text.msg(sender, "Color set to " + colorString + ".");
+            Text.msg(sender, component.append(Component.text(".")));
         }
         return true;
     }
@@ -94,5 +100,11 @@ public class ColorCommand implements SubCommand {
             }
             default -> List.of("-transient");
         };
+    }
+
+    private String toProperCase(String s) {
+        return Arrays.stream(s.split("_"))
+                .map(w -> w.substring(0,1).toUpperCase() + w.substring(1).toLowerCase())
+                .collect(Collectors.joining(" "));
     }
 }

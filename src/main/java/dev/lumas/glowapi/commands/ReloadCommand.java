@@ -17,7 +17,8 @@ import java.util.List;
         name = "reload",
         description = "Reload the config",
         usage = "/<command> reload",
-        permission = "lumaglowapi.command.reload"
+        permission = "lumaglowapi.command.reload",
+        parent = CommandManager.class
 )
 public class ReloadCommand implements SubCommand {
     @Override
@@ -26,10 +27,10 @@ public class ReloadCommand implements SubCommand {
         GlowColorManager.newInstance();
         Bukkit.getOnlinePlayers().forEach(player -> {
             GlowColorManager glowColorManager = GlowColorManager.getInstance();
-            glowColorManager.playerJoinHook(player);
+            glowColorManager.addPlayer(player);
             glowColorManager.update(player);
         });
-        Text.msg(commandSender, "Config reloaded! (New GlowManager instance)");
+        Text.msg(commandSender, "Reloaded.");
         return true;
     }
 

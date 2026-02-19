@@ -16,13 +16,13 @@ public class PlayerSessionListener implements Listener {
     public void onPlayerJoin(PlayerJoinEvent event) {
         GlowColorManager glowColorManager = GlowColorManager.getInstance();
         Player player = event.getPlayer();
-        glowColorManager.playerJoinHook(player);
+        glowColorManager.addPlayer(player);
         glowColorManager.update(player);
     }
 
     @EventHandler
     public void onPlayerQuit(PlayerQuitEvent event) {
-        GlowColorManager.getInstance().playerQuitHook(event.getPlayer());
+        GlowColorManager.getInstance().removePlayer(event.getPlayer());
     }
 
 }

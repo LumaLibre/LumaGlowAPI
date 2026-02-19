@@ -124,19 +124,19 @@ public class PlaceHolderTeamHandler implements GlowColorHandler {
 
     @ApiStatus.Internal
     @Override
-    public void shutdownHook() {
-        entityDelegate.shutdownHook();
+    public void close() {
+        entityDelegate.close();
     }
 
     @ApiStatus.Internal
     @Override
-    public void playerJoinHook(Player player) {
-        entityDelegate.playerJoinHook(player);
+    public void addPlayer(Player player) {
+        entityDelegate.addPlayer(player);
     }
 
     @ApiStatus.Internal
     @Override
-    public void playerQuitHook(Player player) {
-        entityDelegate.playerQuitHook(player);
+    public void removePlayer(Player player) {
+        entityDelegate.removePlayer(player);
     }
 }

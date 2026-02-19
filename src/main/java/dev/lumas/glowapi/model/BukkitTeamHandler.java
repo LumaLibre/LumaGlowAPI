@@ -40,11 +40,11 @@ public class BukkitTeamHandler implements GlowColorHandler {
     }
 
     public BukkitTeamHandler(@NotNull String teamNameFormat) {
-        this(teamNameFormat, "LGAT-%s");
+        this(teamNameFormat, TRANSIENT_TEAM_FORMAT);
     }
 
     public BukkitTeamHandler() {
-        this("LGA-%s");
+        this(TEAM_FORMAT);
     }
 
     @Override
@@ -123,7 +123,7 @@ public class BukkitTeamHandler implements GlowColorHandler {
 
     @ApiStatus.Internal
     @Override
-    public void shutdownHook() {
+    public void close() {
         for (NamedTextColor color : NamedTextColor.NAMES.values()) {
             String teamName = teamNameFormat.formatted(color.toString());
             Team team = board.getTeam(teamName);

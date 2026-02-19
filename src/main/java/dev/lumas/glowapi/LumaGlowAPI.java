@@ -43,7 +43,7 @@ public final class LumaGlowAPI extends JavaPlugin {
 
         Bukkit.getOnlinePlayers().forEach(player -> {
             GlowColorManager manager = GlowColorManager.getInstance();
-            manager.playerJoinHook(player);
+            manager.addPlayer(player);
             manager.update(player);
         });
 
@@ -53,7 +53,7 @@ public final class LumaGlowAPI extends JavaPlugin {
     @Override
     public void onDisable() {
         moduleManager.unregisterModules();
-        GlowColorManager.getInstance().shutdownHook();
+        GlowColorManager.getInstance().close();
         scoreboardLibrary.close();
     }
 

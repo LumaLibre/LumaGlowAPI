@@ -16,6 +16,8 @@ public interface GlowColorHandler {
 
     NamespacedKey COLOR_KEY = new NamespacedKey(LumaGlowAPI.getInstance(), "color");
     boolean IS_FOLIA = ClassUtil.classExists("io.papermc.paper.threadedregions.RegionizedServer");
+    String TEAM_FORMAT = "lumaglowapi_%s";
+    String TRANSIENT_TEAM_FORMAT = "lumaglowapi_transient_%s";
 
     void setColor(Entity entity, NamedTextColor color);
 
@@ -49,17 +51,17 @@ public interface GlowColorHandler {
     }
 
     @ApiStatus.Internal
-    default void shutdownHook() {
+    default void close() {
         // no-op
     }
 
     @ApiStatus.Internal
-    default void playerJoinHook(Player player) {
+    default void addPlayer(Player player) {
         // no-op
     }
 
     @ApiStatus.Internal
-    default void playerQuitHook(Player player) {
+    default void removePlayer(Player player) {
         // no-op
     }
 }
