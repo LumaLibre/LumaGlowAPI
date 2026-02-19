@@ -52,29 +52,27 @@ public class PacketTeamHandler implements GlowColorHandler {
 
         ScoreboardTeam applicableTeam = getApplicableTeam(entity);
         if (applicableTeam != null) {
-            TeamDisplay display = applicableTeam.defaultDisplay();
-            display.removeEntry(entity.getUniqueId().toString());
+            removeEntry(applicableTeam, entity);
         }
         ScoreboardTeam team = getTeam(color);
-        team.defaultDisplay().addEntry(entity.getUniqueId().toString());
+        addEntry(team, entity);
     }
 
     @Override
     public void setTransientColor(Entity entity, NamedTextColor color, @Nullable Long duration) {
         ScoreboardTeam applicableTeam = getApplicableTeam(entity);
         if (applicableTeam != null) {
-            TeamDisplay display = applicableTeam.defaultDisplay();
-            display.removeEntry(entity.getUniqueId().toString());
+            removeEntry(applicableTeam, entity);
         }
 
         ScoreboardTeam team = getTransientTeam(color);
-        team.defaultDisplay().addEntry(entity.getUniqueId().toString());
+        addEntry(team, entity);
 
         if (duration != null) {
             entity.getScheduler().runDelayed(LumaGlowAPI.getInstance(), (task) -> {
                 ScoreboardTeam currentTeam = getApplicableTeam(entity);
                 if (currentTeam != null && currentTeam.equals(team)) {
-                    currentTeam.defaultDisplay().removeEntry(entity.getUniqueId().toString());
+                    removeEntry(currentTeam, entity);
                     update(entity);
                 }
             }, null, duration);
@@ -83,13 +81,14 @@ public class PacketTeamHandler implements GlowColorHandler {
 
     @Override
     public void removeColor(Entity entity) {
+        entity.getPersistentDataContainer().remove(COLOR_KEY);
+
         ScoreboardTeam applicableTeam = getApplicableTeam(entity);
         if (applicableTeam != null) {
-            TeamDisplay display = applicableTeam.defaultDisplay();
-            display.removeEntry(entity.getUniqueId().toString());
+            System.out.println("removed from team " + applicableTeam);
+            removeEntry(applicableTeam, entity);
         }
 
-        entity.getPersistentDataContainer().remove(COLOR_KEY);
         update(applicableTeam, entity);
     }
 
@@ -105,19 +104,40 @@ public class PacketTeamHandler implements GlowColorHandler {
         return getColor(applicableTeam, entity);
     }
 
-
     private void update(ScoreboardTeam applicable, Entity entity) {
+        System.out.println("APPLICABLE:" + applicable);
         if (applicable != null && transientTeams.contains(applicable)) {
-            applicable.defaultDisplay().removeEntry(entity.getUniqueId().toString());
+            removeEntry(applicable, entity);
         }
 
         TextColor color = getColor(applicable, entity);
+        System.out.println("COLOR:" + color);
         if (color instanceof NamedTextColor namedColor) {
-            getTeam(namedColor).defaultDisplay().addEntry(entity.getUniqueId().toString());
+            addEntry(getTeam(namedColor), entity);
         } else if (color != null) {
             LOGGER.error("Bad color " + color + " for entity " + entity);
         }
     }
+
+
+    private void addEntry(ScoreboardTeam team, Entity entity) {
+        TeamDisplay display = team.defaultDisplay();
+        if (entity instanceof Player player) {
+            display.addEntry(player.getName());
+        } else {
+            display.addEntry(entity.getUniqueId().toString());
+        }
+    }
+
+    private void removeEntry(ScoreboardTeam team, Entity entity) {
+        TeamDisplay display = team.defaultDisplay();
+        if (entity instanceof Player player) {
+            display.removeEntry(player.getName());
+        } else {
+            display.removeEntry(entity.getUniqueId().toString());
+        }
+    }
+
 
     private @Nullable TextColor getColor(@Nullable ScoreboardTeam applicable, Entity entity) {
         if (applicable != null) {

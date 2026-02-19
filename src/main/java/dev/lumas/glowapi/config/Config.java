@@ -1,6 +1,5 @@
 package dev.lumas.glowapi.config;
 
-import dev.lumas.glowapi.util.ClassUtil;
 import eu.okaeri.configs.OkaeriConfig;
 import eu.okaeri.configs.annotation.Comment;
 import eu.okaeri.configs.annotation.CustomKey;
@@ -8,7 +7,6 @@ import lombok.Getter;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
 
-import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -51,18 +49,18 @@ public class Config extends OkaeriConfig {
             "This will be the default color of the player if they have no set color",
             "Priority goes from top down, whatever permission is found first will be the color"
     })
-    private Map<String, NamedTextColor> defaultColors = Map.of(
-            "group.admin", NamedTextColor.RED,
-            "group.mod", NamedTextColor.LIGHT_PURPLE,
-            "group.helper", NamedTextColor.GREEN,
-            "group.content", NamedTextColor.RED,
-            "group.ethereal", NamedTextColor.LIGHT_PURPLE,
-            "group.seraphic", NamedTextColor.GREEN,
-            "group.luminal", NamedTextColor.DARK_RED,
-            "group.divine", NamedTextColor.AQUA,
-            "group.arcane", NamedTextColor.RED,
-            "group.default", NamedTextColor.GRAY
-    );
+    private Map<String, NamedTextColor> defaultColors = new LinkedHashMap<>() {{
+        put("group.admin", NamedTextColor.RED);
+        put("group.mod", NamedTextColor.LIGHT_PURPLE);
+        put("group.helper", NamedTextColor.GREEN);
+        put("group.content", NamedTextColor.LIGHT_PURPLE);
+        put("group.ethereal", NamedTextColor.LIGHT_PURPLE);
+        put("group.seraphic", NamedTextColor.GREEN);
+        put("group.luminal", NamedTextColor.DARK_RED);
+        put("group.divine", NamedTextColor.AQUA);
+        put("group.arcane", NamedTextColor.RED);
+        put("group.default", NamedTextColor.GRAY);
+    }};
 
 
     public boolean shouldUsePlaceHolders() {

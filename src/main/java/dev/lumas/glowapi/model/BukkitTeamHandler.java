@@ -124,6 +124,13 @@ public class BukkitTeamHandler implements GlowColorHandler {
     @ApiStatus.Internal
     @Override
     public void shutdownHook() {
+        for (NamedTextColor color : NamedTextColor.NAMES.values()) {
+            String teamName = teamNameFormat.formatted(color.toString());
+            Team team = board.getTeam(teamName);
+            if (team != null) {
+                team.unregister();
+            }
+        }
         for (Team team : transientTeams) {
             team.unregister();
         }

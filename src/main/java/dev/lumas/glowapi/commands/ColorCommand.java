@@ -11,29 +11,33 @@ import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @AutoRegister(RegisterType.SUBCOMMAND)
 @CommandInfo(
         name = "color",
         description = "Change the color of yourself or another player",
-        usage = "/<command> color <color!> <player?>",
+        usage = "/<command> color <color!> <player?> -transient",
         permission = "lumaglowapi.command.color"
 )
 public class ColorCommand implements SubCommand {
     @Override
-    public boolean execute(LumaGlowAPI lumaGlowAPI, CommandSender sender, String s, String[] args) {
-        if (args.length == 0) {
+    public boolean execute(LumaGlowAPI lumaGlowAPI, CommandSender sender, String s, String[] strings) {
+        List<String> args = List.of(strings);
+
+        if (args.isEmpty()) {
             Text.msg(sender, "Specify a color.");
             return false;
         }
 
-        String colorString = args[0];
-        Player target = null;
+        String colorString = args.getFirst();
 
-        if (args.length > 1 && sender.hasPermission("lumaglowapi.command.color.others")) {
-            target = Bukkit.getPlayerExact(args[1]);
-        } else if (sender instanceof Player player) {
+        Player target = args.size() > 1 && sender.hasPermission("lumaglowapi.command.color.others")
+                ? Bukkit.getPlayerExact(args.get(1))
+                : null;
+
+        if (target == null && sender instanceof Player player) {
             target = player;
         }
 
@@ -46,7 +50,6 @@ public class ColorCommand implements SubCommand {
 
         if (colorString.equals("reset")) {
             manager.removeColor(target);
-            manager.update(target);
             Text.msg(sender, "Color reset.");
             return true;
         }
@@ -62,23 +65,34 @@ public class ColorCommand implements SubCommand {
             return true;
         }
 
-        manager.setColor(target, color);
-        Text.msg(sender, "Color set to " + colorString + ".");
+        if (args.contains("-transient")) {
+            manager.setTransientColor(target, color);
+            Text.msg(sender, "Color set to " + colorString + " (transient).");
+        } else {
+            System.out.println("Setting color of " + target.getName() + " to " + colorString);
+            manager.setColor(target, color);
+            Text.msg(sender, "Color set to " + colorString + ".");
+        }
         return true;
     }
 
     @Override
     public List<String> tabComplete(LumaGlowAPI lumaGlowAPI, CommandSender sender, String[] args) {
         return switch (args.length) {
-            case 1 -> NamedTextColor.NAMES.keys().stream().toList();
-            case 2 -> {
-                if (sender.hasPermission("lumaglowapi.command.color.others")) {
-                    yield null; // Assume Bukkit will handle player name tab completion
-                } else {
-                    yield List.of();
-                }
+            case 1 -> {
+                List<String> colors = new ArrayList<>(NamedTextColor.NAMES.keys().stream().toList());
+                colors.add("reset");
+                yield colors;
             }
-            default -> List.of();
+            case 2 -> {
+                List<String> list = new ArrayList<>(List.of("-transient"));
+
+                if (sender.hasPermission("lumaglowapi.command.color.others")) {
+                    Bukkit.getOnlinePlayers().stream().map(Player::getName).forEach(list::add);
+                }
+                yield list;
+            }
+            default -> List.of("-transient");
         };
     }
 }

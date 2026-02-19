@@ -1,10 +1,12 @@
 package dev.lumas.glowapi.commands;
 
+import dev.lumas.glowapi.GlowColorManager;
 import dev.lumas.glowapi.LumaGlowAPI;
 import dev.lumas.lumacore.manager.commands.CommandInfo;
 import dev.lumas.lumacore.manager.modules.AutoRegister;
 import dev.lumas.lumacore.manager.modules.RegisterType;
 import dev.lumas.lumacore.utility.Text;
+import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
 
 import java.util.List;
@@ -21,7 +23,13 @@ public class ReloadCommand implements SubCommand {
     @Override
     public boolean execute(LumaGlowAPI lumaGlowAPI, CommandSender commandSender, String s, String[] strings) {
         LumaGlowAPI.getOkaeriConfig().load(true);
-        Text.msg(commandSender, "Config reloaded!");
+        GlowColorManager.newInstance();
+        Bukkit.getOnlinePlayers().forEach(player -> {
+            GlowColorManager glowColorManager = GlowColorManager.getInstance();
+            glowColorManager.playerJoinHook(player);
+            glowColorManager.update(player);
+        });
+        Text.msg(commandSender, "Config reloaded! (New GlowManager instance)");
         return true;
     }
 

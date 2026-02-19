@@ -3,6 +3,7 @@ package dev.lumas.glowapi.listeners;
 import dev.lumas.glowapi.GlowColorManager;
 import dev.lumas.lumacore.manager.modules.AutoRegister;
 import dev.lumas.lumacore.manager.modules.RegisterType;
+import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
@@ -13,7 +14,10 @@ public class PlayerSessionListener implements Listener {
 
     @EventHandler
     public void onPlayerJoin(PlayerJoinEvent event) {
-        GlowColorManager.getInstance().playerJoinHook(event.getPlayer());
+        GlowColorManager glowColorManager = GlowColorManager.getInstance();
+        Player player = event.getPlayer();
+        glowColorManager.playerJoinHook(player);
+        glowColorManager.update(player);
     }
 
     @EventHandler

@@ -1,6 +1,7 @@
 package dev.lumas.glowapi;
 
 import dev.lumas.glowapi.config.Config;
+import dev.lumas.glowapi.config.NamedTextColorTransformer;
 import dev.lumas.lumacore.manager.modules.ModuleManager;
 import dev.lumas.lumacore.utility.ContextLogger;
 import eu.okaeri.configs.ConfigManager;
@@ -30,7 +31,7 @@ public final class LumaGlowAPI extends JavaPlugin {
     public void onEnable() {
         instance = this;
         moduleManager = new ModuleManager(this);
-        okaeriConfig = loadOkaeriFile(Config.class, "config.yml");
+        okaeriConfig = loadOkaeriFile(Config.class, "new-config.yml");
 
         try {
             scoreboardLibrary = ScoreboardLibrary.loadScoreboardLibrary(this);
@@ -56,14 +57,16 @@ public final class LumaGlowAPI extends JavaPlugin {
     }
 
     public <T extends OkaeriConfig> T loadOkaeriFile(Class<T> clazz, String fileName) {
-        return ConfigManager.create(clazz, it -> {
-            it.withConfigurer(new YamlSnakeYamlConfigurer(), new StandardSerdes());
-            it.withRemoveOrphans(false);
-            it.withBindFile(this.getDataPath().resolve(fileName));
-            it.saveDefaults();
-            it.load(true);
+        return ConfigManager.create(clazz, cfg -> {
+            cfg.configure(it -> {
+                it.configurer(new YamlSnakeYamlConfigurer(), new StandardSerdes());
+                it.removeOrphans(true);
+                it.bindFile(this.getDataPath().resolve(fileName));
+                it.serdes(new NamedTextColorTransformer());
+            });
+            cfg.saveDefaults();
+            cfg.load(true);
         });
     }
-
 
 }
