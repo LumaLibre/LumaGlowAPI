@@ -4,6 +4,7 @@ import com.google.common.base.Preconditions;
 import dev.lumas.glowapi.LumaGlowAPI;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextColor;
+import org.bukkit.Bukkit;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.persistence.PersistentDataType;
@@ -36,8 +37,15 @@ public class PlaceHolderTeamHandler implements GlowColorHandler {
             return;
         }
 
-        entity.getPersistentDataContainer().set(COLOR_KEY, PersistentDataType.STRING, color.toString());
-        update(entity);
+        if (Bukkit.isOwnedByCurrentRegion(entity)) {
+            entity.getPersistentDataContainer().set(COLOR_KEY, PersistentDataType.STRING, color.toString());
+            update(entity);
+        } else {
+            entity.getScheduler().run(LumaGlowAPI.getInstance(), task -> {
+                entity.getPersistentDataContainer().set(COLOR_KEY, PersistentDataType.STRING, color.toString());
+                update(entity);
+            }, null);
+        }
     }
 
     @Override
@@ -66,8 +74,15 @@ public class PlaceHolderTeamHandler implements GlowColorHandler {
             return;
         }
 
-        entity.getPersistentDataContainer().remove(COLOR_KEY);
-        update(entity);
+        if (Bukkit.isOwnedByCurrentRegion(entity)) {
+            entity.getPersistentDataContainer().remove(COLOR_KEY);
+            update(entity);
+        } else {
+            entity.getScheduler().run(LumaGlowAPI.getInstance(), task -> {
+                entity.getPersistentDataContainer().remove(COLOR_KEY);
+                update(entity);
+            }, null);
+        }
     }
 
     @Override

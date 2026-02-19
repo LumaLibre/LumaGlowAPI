@@ -2,12 +2,12 @@ package dev.lumas.glowapi.model;
 
 import com.google.common.base.Preconditions;
 import dev.lumas.glowapi.LumaGlowAPI;
-import dev.lumas.lumacore.utility.ContextLogger;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextColor;
 import net.megavex.scoreboardlibrary.api.team.ScoreboardTeam;
 import net.megavex.scoreboardlibrary.api.team.TeamDisplay;
 import net.megavex.scoreboardlibrary.api.team.TeamManager;
+import org.bukkit.Bukkit;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.persistence.PersistentDataType;
@@ -19,8 +19,6 @@ import java.util.HashSet;
 import java.util.Set;
 
 public class PacketTeamHandler implements GlowColorHandler {
-
-    private static final ContextLogger LOGGER = ContextLogger.getLogger();
 
     private final TeamManager teamManager;
     private final String teamNameFormat;
@@ -47,7 +45,13 @@ public class PacketTeamHandler implements GlowColorHandler {
 
     @Override
     public void setColor(Entity entity, NamedTextColor color) {
-        entity.getPersistentDataContainer().set(COLOR_KEY, PersistentDataType.STRING, color.toString());
+        if (Bukkit.isOwnedByCurrentRegion(entity)) {
+            entity.getPersistentDataContainer().set(COLOR_KEY, PersistentDataType.STRING, color.toString());
+        } else {
+            entity.getScheduler().run(LumaGlowAPI.getInstance(), task -> {
+                entity.getPersistentDataContainer().set(COLOR_KEY, PersistentDataType.STRING, color.toString());
+            }, null);
+        }
 
         ScoreboardTeam applicableTeam = getApplicableTeam(entity);
         if (applicableTeam != null) {
@@ -80,7 +84,13 @@ public class PacketTeamHandler implements GlowColorHandler {
 
     @Override
     public void removeColor(Entity entity) {
-        entity.getPersistentDataContainer().remove(COLOR_KEY);
+        if (Bukkit.isOwnedByCurrentRegion(entity)) {
+            entity.getPersistentDataContainer().remove(COLOR_KEY);
+        } else {
+            entity.getScheduler().run(LumaGlowAPI.getInstance(), task -> {
+                entity.getPersistentDataContainer().remove(COLOR_KEY);
+            }, null);
+        }
 
         ScoreboardTeam applicableTeam = getApplicableTeam(entity);
         if (applicableTeam != null) {
@@ -121,7 +131,10 @@ public class PacketTeamHandler implements GlowColorHandler {
         if (newColor == null) {
             newColor = (NamedTextColor) getDefaultColor(entity);
         }
-        addEntry(getTeam(newColor), entity);
+
+        if (newColor != null) {
+            addEntry(getTeam(newColor), entity);
+        }
     }
 
 

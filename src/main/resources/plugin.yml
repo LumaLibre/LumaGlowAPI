@@ -16,6 +16,9 @@ permissions:
   lumaglowapi.command.update:
     description: Allows use of the /lumaglowapi update command
     default: op
+  lumaglowapi.command.colorentity:
+    description: Allows use of the /lumaglowapi colorentity command
+    default: op
   lumaglowapi.command.reload:
     description: Allows reloading of the config
     default: op

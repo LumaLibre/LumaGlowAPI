@@ -6,16 +6,13 @@ import dev.lumas.lumacore.manager.commands.CommandInfo;
 import dev.lumas.lumacore.manager.modules.AutoRegister;
 import dev.lumas.lumacore.manager.modules.RegisterType;
 import dev.lumas.lumacore.utility.Text;
-import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @AutoRegister(RegisterType.SUBCOMMAND)
 @CommandInfo(
@@ -69,16 +66,7 @@ public class ColorCommand implements SubCommand {
             return true;
         }
 
-        Component component = Component.text("Color set to ")
-                .append(Component.text(toProperCase(colorString), color));
-
-        if (args.contains("-transient")) {
-            manager.setTransientColor(target, color);
-            Text.msg(sender, component.append(Component.text(" (transient).")));
-        } else {
-            manager.setColor(target, color);
-            Text.msg(sender, component.append(Component.text(".")));
-        }
+        ColorEntityCommand.doColor(sender, args, target, colorString, manager, color);
         return true;
     }
 
@@ -100,11 +88,5 @@ public class ColorCommand implements SubCommand {
             }
             default -> List.of("-transient");
         };
-    }
-
-    private String toProperCase(String s) {
-        return Arrays.stream(s.split("_"))
-                .map(w -> w.substring(0,1).toUpperCase() + w.substring(1).toLowerCase())
-                .collect(Collectors.joining(" "));
     }
 }
