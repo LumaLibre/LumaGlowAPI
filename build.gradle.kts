@@ -57,6 +57,7 @@ tasks {
 
         archiveClassifier.set("")
         archiveVersion.set("")
+        exclude("yaml/snakeyaml/**", "intellij/lang/annotations/**", "org/jetbrains/annotations/**")
     }
 
     jar {
