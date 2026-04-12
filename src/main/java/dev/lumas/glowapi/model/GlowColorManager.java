@@ -3,6 +3,7 @@ package dev.lumas.glowapi.model;
 import dev.lumas.glowapi.LumaGlowAPI;
 import dev.lumas.glowapi.config.Config;
 import lombok.experimental.Delegate;
+import org.jetbrains.annotations.ApiStatus;
 
 import static dev.lumas.glowapi.model.GlowColorHandler.IS_FOLIA;
 
@@ -10,6 +11,7 @@ public record GlowColorManager(@Delegate GlowColorHandler handler) {
 
     private static GlowColorManager instance;
 
+    @ApiStatus.Internal
     public static GlowColorManager newInstance() {
         if (instance != null) {
             instance.close();
