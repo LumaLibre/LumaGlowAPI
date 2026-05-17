@@ -22,9 +22,8 @@ repositories {
 }
 
 dependencies {
-    val scoreboardLibraryVersion = "2.7.0"
-    implementation("net.megavex:scoreboard-library-api:$scoreboardLibraryVersion")
-    runtimeOnly("net.megavex:scoreboard-library-implementation:$scoreboardLibraryVersion")
+    implementation("net.megavex:scoreboard-library-api:2.7.4")
+    runtimeOnly("net.megavex:scoreboard-library-implementation:2.7.4")
     implementation("eu.okaeri:okaeri-configs-yaml-snakeyaml:6.1.0-beta.1")
 
 

@@ -78,7 +78,8 @@ public class ColorPlaceholder extends SoloAbstractPlaceholder {
             case "light_purple" -> "&d";
             case "red" -> "&c";
             case "yellow" -> "&e";
-            default -> "&f";
+            case "white" -> "&f";
+            default -> "&r";
         };
     }
 }
