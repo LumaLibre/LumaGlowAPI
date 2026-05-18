@@ -53,7 +53,10 @@ public final class LumaGlowAPI extends JavaPlugin {
     @Override
     public void onDisable() {
         moduleManager.unregisterModules();
-        GlowColorManager.getInstance().close();
+        GlowColorManager manager = GlowColorManager.getInstanceOrNull();
+        if (manager != null) {
+            manager.close();
+        }
         scoreboardLibrary.close();
     }
 
