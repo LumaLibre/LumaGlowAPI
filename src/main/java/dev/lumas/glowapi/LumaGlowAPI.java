@@ -38,7 +38,7 @@ public final class LumaGlowAPI extends JavaPlugin {
             scoreboardLibrary = ScoreboardLibrary.loadScoreboardLibrary(this);
         } catch (NoPacketAdapterAvailableException e) {
             scoreboardLibrary = new NoopScoreboardLibrary();
-            LOGGER.error("Using NoopScoreboardLibrary.");
+            LOGGER.error("Using NoopScoreboardLibrary.", e);
         }
 
         Bukkit.getOnlinePlayers().forEach(player -> {
