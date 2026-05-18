@@ -29,7 +29,7 @@ dependencies {
 
     compileOnly("io.papermc.paper:paper-api:1.21.4-R0.1-SNAPSHOT")
     compileOnly("me.clip:placeholderapi:2.11.6")
-    compileOnly("dev.lumas.lumacore:LumaCore:d774bc6")
+    compileOnly("dev.lumas.core:LumaCore:0383263")
     implementation("org.jetbrains:annotations:24.0.0")
 }
 

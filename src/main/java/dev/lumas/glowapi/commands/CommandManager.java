@@ -1,17 +1,17 @@
 package dev.lumas.glowapi.commands;
 
+import dev.lumas.core.annotation.Autowire;
+import dev.lumas.core.annotation.CommandMeta;
+import dev.lumas.core.annotation.Register;
+import dev.lumas.core.model.command.AbstractCommandManager;
 import dev.lumas.glowapi.LumaGlowAPI;
 import dev.lumas.glowapi.model.GlowColorManager;
-import dev.lumas.lumacore.manager.commands.AbstractCommandManager;
-import dev.lumas.lumacore.manager.commands.CommandInfo;
-import dev.lumas.lumacore.manager.modules.AutoRegister;
-import dev.lumas.lumacore.manager.modules.RegisterType;
 import dev.lumas.lumacore.utility.Text;
 import org.bukkit.command.CommandSender;
 import org.jetbrains.annotations.NotNull;
 
-@AutoRegister(RegisterType.COMMAND)
-@CommandInfo(
+@Register(Autowire.COMMAND)
+@CommandMeta(
         name = "lumaglowapi",
         aliases = {"lga", "glow"},
         description = "Base command for LumaGlowAPI",

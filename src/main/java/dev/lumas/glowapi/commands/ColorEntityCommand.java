@@ -1,11 +1,11 @@
 package dev.lumas.glowapi.commands;
 
+import dev.lumas.core.annotation.Autowire;
+import dev.lumas.core.annotation.CommandMeta;
+import dev.lumas.core.annotation.Register;
 import dev.lumas.glowapi.LumaGlowAPI;
 import dev.lumas.glowapi.model.GlowColorManager;
 import dev.lumas.glowapi.util.StringUtil;
-import dev.lumas.lumacore.manager.commands.CommandInfo;
-import dev.lumas.lumacore.manager.modules.AutoRegister;
-import dev.lumas.lumacore.manager.modules.RegisterType;
 import dev.lumas.lumacore.utility.Text;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -17,8 +17,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 
-@AutoRegister(RegisterType.SUBCOMMAND)
-@CommandInfo(
+@Register(Autowire.SUBCOMMAND)
+@CommandMeta(
         name = "colorentity",
         aliases = {"colore"},
         description = "Color a targeted entity",

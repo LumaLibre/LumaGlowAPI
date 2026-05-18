@@ -1,10 +1,10 @@
 package dev.lumas.glowapi;
 
+import dev.lumas.core.manager.Modules;
+import dev.lumas.core.util.ContextLogger;
 import dev.lumas.glowapi.config.Config;
 import dev.lumas.glowapi.config.NamedTextColorTransformer;
 import dev.lumas.glowapi.model.GlowColorManager;
-import dev.lumas.lumacore.manager.modules.ModuleManager;
-import dev.lumas.lumacore.utility.ContextLogger;
 import eu.okaeri.configs.ConfigManager;
 import eu.okaeri.configs.OkaeriConfig;
 import eu.okaeri.configs.serdes.standard.StandardSerdes;
@@ -22,7 +22,7 @@ public final class LumaGlowAPI extends JavaPlugin {
 
     @Getter
     private static LumaGlowAPI instance;
-    private static ModuleManager moduleManager;
+    private static Modules moduleManager;
     @Getter
     private static Config okaeriConfig;
     @Getter
@@ -31,7 +31,7 @@ public final class LumaGlowAPI extends JavaPlugin {
     @Override
     public void onEnable() {
         instance = this;
-        moduleManager = new ModuleManager(this);
+        moduleManager = new Modules(this);
         okaeriConfig = loadOkaeriFile(Config.class, "config.yml");
 
         try {
@@ -47,12 +47,12 @@ public final class LumaGlowAPI extends JavaPlugin {
             manager.update(player);
         });
 
-        moduleManager.reflectivelyRegisterModules();
+        moduleManager.register();
     }
 
     @Override
     public void onDisable() {
-        moduleManager.unregisterModules();
+        moduleManager.unregister();
         GlowColorManager manager = GlowColorManager.getInstanceOrNull();
         if (manager != null) {
             manager.close();

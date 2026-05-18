@@ -1,14 +1,14 @@
 package dev.lumas.glowapi.papi;
 
+import dev.lumas.core.annotation.Autowire;
+import dev.lumas.core.annotation.PlaceholderMeta;
+import dev.lumas.core.annotation.Register;
+import dev.lumas.core.model.placeholder.SoloAbstractPlaceholder;
 import dev.lumas.glowapi.LumaGlowAPI;
 import dev.lumas.glowapi.config.Config;
 import dev.lumas.glowapi.model.GlowColorHandler;
 import dev.lumas.glowapi.model.GlowColorManager;
 import dev.lumas.glowapi.model.PlaceHolderTeamHandler;
-import dev.lumas.lumacore.manager.modules.AutoRegister;
-import dev.lumas.lumacore.manager.modules.RegisterType;
-import dev.lumas.lumacore.manager.placeholder.PlaceholderInfo;
-import dev.lumas.lumacore.manager.placeholder.SoloAbstractPlaceholder;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextColor;
 import org.bukkit.ChatColor;
@@ -16,8 +16,8 @@ import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-@AutoRegister(RegisterType.PLACEHOLDER)
-@PlaceholderInfo(
+@Register(Autowire.PLACEHOLDER)
+@PlaceholderMeta(
         identifier = "lumaglowapi",
         author = "Jsinco",
         version = "2.0.0"

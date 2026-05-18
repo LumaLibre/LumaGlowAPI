@@ -1,10 +1,10 @@
 package dev.lumas.glowapi.commands;
 
+import dev.lumas.core.annotation.Autowire;
+import dev.lumas.core.annotation.CommandMeta;
+import dev.lumas.core.annotation.Register;
 import dev.lumas.glowapi.LumaGlowAPI;
 import dev.lumas.glowapi.model.GlowColorManager;
-import dev.lumas.lumacore.manager.commands.CommandInfo;
-import dev.lumas.lumacore.manager.modules.AutoRegister;
-import dev.lumas.lumacore.manager.modules.RegisterType;
 import dev.lumas.lumacore.utility.Text;
 import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
@@ -12,8 +12,8 @@ import org.bukkit.entity.Player;
 
 import java.util.List;
 
-@AutoRegister(RegisterType.SUBCOMMAND)
-@CommandInfo(
+@Register(Autowire.SUBCOMMAND)
+@CommandMeta(
         name = "update",
         description = "Update color",
         usage = "/<command> <subcommand>",
