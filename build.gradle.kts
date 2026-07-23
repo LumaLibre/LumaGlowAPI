@@ -22,8 +22,8 @@ repositories {
 }
 
 dependencies {
-    implementation("net.megavex:scoreboard-library-api:2.7.4")
-    runtimeOnly("net.megavex:scoreboard-library-implementation:2.7.4")
+    implementation("net.megavex:scoreboard-library-api:2.8.1")
+    runtimeOnly("net.megavex:scoreboard-library-implementation:2.8.1")
     implementation("eu.okaeri:okaeri-configs-yaml-snakeyaml:6.1.0-beta.1")
 
 
