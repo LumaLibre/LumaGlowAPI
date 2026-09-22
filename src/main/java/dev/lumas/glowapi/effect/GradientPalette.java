@@ -1,6 +1,7 @@
 package dev.lumas.glowapi.effect;
 
 import dev.lumas.glowapi.LumaGlowAPI;
+import dev.lumas.glowapi.config.Config;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -39,6 +40,9 @@ public final class GradientPalette {
 
     public static @NotNull GradientPalette get() {
         if (instance == null) {
+            if (LumaGlowAPI.getOkaeriConfig() == null) {
+                return build();
+            }
             instance = build();
         }
         return instance;
@@ -59,7 +63,8 @@ public final class GradientPalette {
             }
         }
 
-        Map<String, List<String>> configured = LumaGlowAPI.getOkaeriConfig().getEffects().getGradients();
+        Config config = LumaGlowAPI.getOkaeriConfig();
+        Map<String, List<String>> configured = config == null ? null : config.getEffects().getGradients();
         if (configured != null) {
             for (Map.Entry<String, List<String>> entry : configured.entrySet()) {
                 String name = entry.getKey() == null ? "" : entry.getKey().trim().toLowerCase(Locale.ROOT);

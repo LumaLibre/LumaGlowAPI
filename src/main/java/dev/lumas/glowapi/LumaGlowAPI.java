@@ -53,12 +53,16 @@ public final class LumaGlowAPI extends JavaPlugin {
 
     @Override
     public void onDisable() {
-        moduleManager.unregister();
+        if (moduleManager != null) {
+            moduleManager.unregister();
+        }
         GlowColorManager manager = GlowColorManager.getInstanceOrNull();
         if (manager != null) {
             manager.close();
         }
-        scoreboardLibrary.close();
+        if (scoreboardLibrary != null) {
+            scoreboardLibrary.close();
+        }
     }
 
     public <T extends OkaeriConfig> T loadOkaeriFile(Class<T> clazz, String fileName) {
