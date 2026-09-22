@@ -3,10 +3,10 @@ package dev.lumas.glowapi.commands;
 import dev.lumas.core.annotation.Autowire;
 import dev.lumas.core.annotation.CommandMeta;
 import dev.lumas.core.annotation.Register;
+import dev.lumas.core.util.Text;
 import dev.lumas.glowapi.LumaGlowAPI;
 import dev.lumas.glowapi.model.GlowColorManager;
-import dev.lumas.lumacore.utility.Text;
-import net.kyori.adventure.text.format.NamedTextColor;
+import dev.lumas.glowapi.model.GlowStyle;
 import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -17,24 +17,25 @@ import java.util.List;
 @Register(Autowire.SUBCOMMAND)
 @CommandMeta(
         name = "color",
-        description = "Change the color of yourself or another player",
-        usage = "/<command> color <color!> <player?> -transient",
+        description = "Change the glow style of yourself or another player",
+        usage = "/<command> color <color|preset|#rrggbb|effect|reset> <player?> -transient",
         permission = "lumaglowapi.command.color",
         parent = CommandManager.class
 )
 public class ColorCommand implements SubCommand {
+
     @Override
-    public boolean execute(LumaGlowAPI lumaGlowAPI, CommandSender sender, String s, String[] strings) {
+    public boolean execute(LumaGlowAPI lumaGlowAPI, CommandSender sender, String label, String[] strings) {
         List<String> args = List.of(strings);
 
         if (args.isEmpty()) {
-            Text.msg(sender, "Specify a color.");
+            Text.msg(sender, "Specify a color, preset, #rrggbb or effect.");
             return false;
         }
 
-        String colorString = args.getFirst().toLowerCase();
+        String styleString = args.getFirst().toLowerCase();
 
-        Player target = args.size() > 1 && sender.hasPermission("lumaglowapi.command.color.others")
+        Player target = args.size() > 1 && !args.get(1).startsWith("-") && sender.hasPermission("lumaglowapi.command.color.others")
                 ? Bukkit.getPlayerExact(args.get(1))
                 : null;
 
@@ -49,24 +50,24 @@ public class ColorCommand implements SubCommand {
 
         GlowColorManager manager = GlowColorManager.getInstance();
 
-        if (colorString.equals("reset")) {
+        if (styleString.equals("reset")) {
             manager.removeColor(target);
             Text.msg(sender, "Color reset.");
             return true;
         }
 
-        NamedTextColor color = NamedTextColor.NAMES.value(colorString);
-        if (color == null) {
-            Text.msg(sender, "Invalid color %s.".formatted(colorString));
+        GlowStyle style = GlowStyle.parse(styleString);
+        if (style == null) {
+            Text.msg(sender, "Invalid style %s. <gray>Use a color name, a preset, #rrggbb, rainbow:8, gradient:#rrggbb:4 or pulse:#rrggbb:8.".formatted(styleString));
             return true;
         }
 
-        if (!sender.hasPermission("lumaglowapi.color." + colorString)) {
-            Text.msg(sender, "You don't have permission to use this color.");
+        if (!sender.hasPermission(style.permission())) {
+            Text.msg(sender, "You don't have permission to use this style.");
             return true;
         }
 
-        ColorEntityCommand.doColor(sender, args, target, colorString, manager, color);
+        ColorEntityCommand.doColor(sender, args, target, manager, style);
         return true;
     }
 
@@ -74,9 +75,9 @@ public class ColorCommand implements SubCommand {
     public List<String> tabComplete(LumaGlowAPI lumaGlowAPI, CommandSender sender, String[] args) {
         return switch (args.length) {
             case 1 -> {
-                List<String> colors = new ArrayList<>(NamedTextColor.NAMES.keys().stream().toList());
-                colors.add("reset");
-                yield colors;
+                List<String> styles = new ArrayList<>(GlowStyle.suggestions(sender::hasPermission));
+                styles.add("reset");
+                yield styles;
             }
             case 2 -> {
                 List<String> list = new ArrayList<>(List.of("-transient"));

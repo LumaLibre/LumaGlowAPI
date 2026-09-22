@@ -8,6 +8,7 @@ import org.bukkit.NamespacedKey;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.ApiStatus;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Map;
@@ -33,9 +34,34 @@ public interface GlowColorHandler {
         setTransientColor(entity, color, null);
     }
 
-    default @Nullable TextColor getDefaultColor(Entity entity) {
-        Map<String, NamedTextColor> defaultColors = LumaGlowAPI.getOkaeriConfig().getDefaultColors();
-        for (var entry : defaultColors.entrySet()) {
+    default void setStyle(@NotNull Entity entity, @NotNull GlowStyle style) {
+        if (style instanceof GlowStyle.Named(NamedTextColor color)) {
+            setColor(entity, color);
+        } else {
+            throw new UnsupportedOperationException("Effect styles need a GlowStyleHandler. Use GlowColorManager");
+        }
+    }
+
+    default void setTransientStyle(@NotNull Entity entity, @NotNull GlowStyle style, @Nullable Long duration) {
+        if (style instanceof GlowStyle.Named(NamedTextColor color)) {
+            setTransientColor(entity, color, duration);
+        } else {
+            throw new UnsupportedOperationException("Effect styles need a GlowStyleHandler. Use GlowColorManager");
+        }
+    }
+
+    default void setTransientStyle(@NotNull Entity entity, @NotNull GlowStyle style) {
+        setTransientStyle(entity, style, null);
+    }
+
+    default @Nullable GlowStyle getStyle(@NotNull Entity entity) {
+        TextColor color = getColor(entity);
+        return color instanceof NamedTextColor named ? GlowStyle.of(named) : null;
+    }
+
+    default @Nullable GlowStyle getDefaultStyle(@NotNull Entity entity) {
+        Map<String, GlowStyle> defaults = LumaGlowAPI.getOkaeriConfig().getDefaultColors();
+        for (var entry : defaults.entrySet()) {
             if (entity.hasPermission(entry.getKey())) {
                 return entry.getValue();
             }
@@ -43,11 +69,22 @@ public interface GlowColorHandler {
         return null;
     }
 
+    default @Nullable NamedTextColor getDefaultColor(Entity entity) {
+        return getDefaultStyle(entity) instanceof GlowStyle.Named named ? named.color() : null;
+    }
+
     default void setDefaultColor(Entity entity) {
-        TextColor defaultColor = getDefaultColor(entity);
+        NamedTextColor defaultColor = getDefaultColor(entity);
         if (defaultColor != null) {
-            setColor(entity, (NamedTextColor) defaultColor);
+            setColor(entity, defaultColor);
         }
+    }
+
+    /**
+     * The innermost handler, unwrapping decorators such as {@link GlowStyleHandler}.
+     */
+    default @NotNull GlowColorHandler root() {
+        return this;
     }
 
     @ApiStatus.Internal

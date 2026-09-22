@@ -5,9 +5,11 @@ import dev.lumas.core.annotation.CommandMeta;
 import dev.lumas.core.annotation.Register;
 import dev.lumas.glowapi.LumaGlowAPI;
 import dev.lumas.glowapi.model.GlowColorManager;
+import dev.lumas.glowapi.pack.PackService;
 import dev.lumas.lumacore.utility.Text;
 import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
+import org.bukkit.entity.Player;
 
 import java.util.List;
 
@@ -30,7 +32,18 @@ public class ReloadCommand implements SubCommand {
             glowColorManager.addPlayer(player);
             glowColorManager.update(player);
         });
-        Text.msg(commandSender, "Reloaded.");
+
+        PackService pack = PackService.getInstance();
+        pack.reload();
+        if (pack.deliverable()) {
+            if (commandSender instanceof Player player) {
+                pack.send(player);
+            }
+            Text.msg(commandSender, "Reloaded. Pack served from " + pack.url().orElseThrow()
+                    + " <dark_gray>(/" + s + " pack to push it to others)");
+        } else {
+            Text.msg(commandSender, "Reloaded.");
+        }
         return true;
     }
 

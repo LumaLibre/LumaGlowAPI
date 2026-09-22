@@ -6,7 +6,6 @@ import dev.lumas.core.annotation.Register;
 import dev.lumas.core.model.placeholder.SoloAbstractPlaceholder;
 import dev.lumas.glowapi.LumaGlowAPI;
 import dev.lumas.glowapi.config.Config;
-import dev.lumas.glowapi.model.GlowColorHandler;
 import dev.lumas.glowapi.model.GlowColorManager;
 import dev.lumas.glowapi.model.PlaceHolderTeamHandler;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -40,11 +39,11 @@ public class ColorPlaceholder extends SoloAbstractPlaceholder {
             }
             color = config.getColorToShowWhileNotGlowing();
         } else {
-            GlowColorHandler handler = GlowColorManager.getInstance().handler();
-            if (!(handler instanceof PlaceHolderTeamHandler)) {
+            GlowColorManager manager = GlowColorManager.getInstance();
+            if (!(manager.handler().root() instanceof PlaceHolderTeamHandler)) {
                 return "";
             }
-            color = handler.getColor(player);
+            color = manager.getColor(player);
         }
 
 

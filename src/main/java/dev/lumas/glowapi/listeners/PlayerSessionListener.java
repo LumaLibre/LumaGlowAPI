@@ -2,7 +2,9 @@ package dev.lumas.glowapi.listeners;
 
 import dev.lumas.core.annotation.Autowire;
 import dev.lumas.core.annotation.Register;
+import dev.lumas.glowapi.LumaGlowAPI;
 import dev.lumas.glowapi.model.GlowColorManager;
+import dev.lumas.glowapi.pack.PackService;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -18,6 +20,9 @@ public class PlayerSessionListener implements Listener {
         Player player = event.getPlayer();
         glowColorManager.addPlayer(player);
         glowColorManager.update(player);
+        if (LumaGlowAPI.getOkaeriConfig().getEffects().isSendPackOnJoin()) {
+            PackService.getInstance().send(player);
+        }
     }
 
     @EventHandler

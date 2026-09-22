@@ -3,12 +3,11 @@ package dev.lumas.glowapi.commands;
 import dev.lumas.core.annotation.Autowire;
 import dev.lumas.core.annotation.CommandMeta;
 import dev.lumas.core.annotation.Register;
+import dev.lumas.core.util.Text;
 import dev.lumas.glowapi.LumaGlowAPI;
 import dev.lumas.glowapi.model.GlowColorManager;
-import dev.lumas.glowapi.util.StringUtil;
-import dev.lumas.lumacore.utility.Text;
+import dev.lumas.glowapi.model.GlowStyle;
 import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
@@ -22,7 +21,7 @@ import java.util.List;
         name = "colorentity",
         aliases = {"colore"},
         description = "Color a targeted entity",
-        usage = "/<command> colorentity <color!> -transient -glow",
+        usage = "/<command> colorentity <color|preset|#rrggbb|effect|reset> -transient -glow",
         permission = "lumaglowapi.command.colorentity",
         parent = CommandManager.class
 )
@@ -37,7 +36,7 @@ public class ColorEntityCommand implements SubCommand {
         Player player = (Player) sender;
         Entity entity = player.getTargetEntity(100);
 
-        String stringColor = argsList.getFirst();
+        String styleString = argsList.getFirst().toLowerCase();
 
         if (entity == null) {
             Text.msg(sender, "Look at an entity.");
@@ -49,19 +48,19 @@ public class ColorEntityCommand implements SubCommand {
 
         GlowColorManager manager = GlowColorManager.getInstance();
 
-        if (stringColor.equals("reset")) {
+        if (styleString.equals("reset")) {
             manager.removeColor(entity);
             Text.msg(sender, "Color reset.");
             return true;
         }
 
-        NamedTextColor color = NamedTextColor.NAMES.value(stringColor);
-        if (color == null) {
-            Text.msg(sender, "Invalid color %s.".formatted(stringColor));
+        GlowStyle style = GlowStyle.parse(styleString);
+        if (style == null) {
+            Text.msg(sender, "Invalid style %s.".formatted(styleString));
             return true;
         }
 
-        doColor(sender, argsList, entity, stringColor, manager, color);
+        doColor(sender, argsList, entity, manager, style);
 
         if (argsList.contains("-glow")) {
             entity.setGlowing(!entity.isGlowing());
@@ -72,24 +71,25 @@ public class ColorEntityCommand implements SubCommand {
     @Override
     public List<String> tabComplete(LumaGlowAPI lumaGlowAPI, CommandSender commandSender, String[] args) {
         if (args.length == 1) {
-            List<String> colors = new ArrayList<>(NamedTextColor.NAMES.keys().stream().toList());
-            colors.add("reset");
-            return colors;
+            List<String> styles = new ArrayList<>(GlowStyle.suggestions(commandSender::hasPermission));
+            styles.add("reset");
+            return styles;
         } else {
             return List.of("-transient", "-glow");
         }
     }
 
-    static void doColor(CommandSender sender, List<String> argsList, Entity entity, String stringColor, GlowColorManager manager, NamedTextColor color) {
-        Component component = Component.text("Color set to ")
-                .append(Component.text(StringUtil.toProperCase(stringColor), color));
+    static void doColor(CommandSender sender, List<String> argsList, Entity entity, GlowColorManager manager, GlowStyle style) {
+        Component component = Component.text("Style set to ")
+                .append(Component.text(style.describe(), style.displayColor()));
 
         if (argsList.contains("-transient")) {
-            manager.setTransientColor(entity, color);
+            manager.setTransientStyle(entity, style);
             Text.msg(sender, component.append(Component.text(" (transient).")));
         } else {
-            manager.setColor(entity, color);
+            manager.setStyle(entity, style);
             Text.msg(sender, component.append(Component.text(".")));
         }
+
     }
 }

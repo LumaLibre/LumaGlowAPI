@@ -19,6 +19,11 @@ permissions:
   lumaglowapi.command.colorentity:
     description: Allows use of the /lumaglowapi colorentity command
     default: op
+  lumaglowapi.command.pack:
+    description: Allows re-sending the glow-effect resource pack
+    default: op
+    children:
+      lumaglowapi.command: true
   lumaglowapi.command.reload:
     description: Allows reloading of the config
     default: op
@@ -54,6 +59,78 @@ permissions:
       lumaglowapi.color.light_purple: true
       lumaglowapi.color.yellow: true
       lumaglowapi.color.white: true
+      lumaglowapi.color.custom: true
+      lumaglowapi.color.preset.rainbow: true
+      lumaglowapi.color.preset.rainbow_slow: true
+      lumaglowapi.color.preset.rainbow_fast: true
+      lumaglowapi.color.preset.fire: true
+      lumaglowapi.color.preset.sunset: true
+      lumaglowapi.color.preset.forest: true
+      lumaglowapi.color.preset.acid: true
+      lumaglowapi.color.preset.ocean: true
+      lumaglowapi.color.preset.ice: true
+      lumaglowapi.color.preset.galaxy: true
+      lumaglowapi.color.preset.candy: true
+      lumaglowapi.color.preset.pulse_red: true
+      lumaglowapi.color.preset.pulse_aqua: true
+      lumaglowapi.color.preset.pulse_pink: true
+      lumaglowapi.color.preset.pulse_yellow: true
+      lumaglowapi.color.preset.mistral: true
+      lumaglowapi.color.preset.mistral_slow: true
+  lumaglowapi.color.custom:
+    description: Allows RGB colors and custom rainbow / gradient / pulse effects
+    default: op
+  lumaglowapi.color.preset.rainbow:
+    description: Allows use of a preset
+    default: op
+  lumaglowapi.color.preset.rainbow_slow:
+    description: Allows use of a preset
+    default: op
+  lumaglowapi.color.preset.rainbow_fast:
+    description: Allows use of a preset
+    default: op
+  lumaglowapi.color.preset.fire:
+    description: Allows use of a preset
+    default: op
+  lumaglowapi.color.preset.sunset:
+    description: Allows use of a preset
+    default: op
+  lumaglowapi.color.preset.forest:
+    description: Allows use of a preset
+    default: op
+  lumaglowapi.color.preset.acid:
+    description: Allows use of a preset
+    default: op
+  lumaglowapi.color.preset.ocean:
+    description: Allows use of a preset
+    default: op
+  lumaglowapi.color.preset.ice:
+    description: Allows use of a preset
+    default: op
+  lumaglowapi.color.preset.galaxy:
+    description: Allows use of a preset
+    default: op
+  lumaglowapi.color.preset.candy:
+    description: Allows use of a preset
+    default: op
+  lumaglowapi.color.preset.pulse_red:
+    description: Allows use of a preset
+    default: op
+  lumaglowapi.color.preset.pulse_aqua:
+    description: Allows use of a preset
+    default: op
+  lumaglowapi.color.preset.pulse_pink:
+    description: Allows use of a preset
+    default: op
+  lumaglowapi.color.preset.pulse_yellow:
+    description: Allows use of a preset
+    default: op
+  lumaglowapi.color.preset.mistral:
+    description: Allows use of a preset
+    default: op
+  lumaglowapi.color.preset.mistral_slow:
+    description: Allows use of a preset
+    default: op
   lumaglowapi.color.black:
     description: Allows use of a color
     default: op

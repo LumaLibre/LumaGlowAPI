@@ -23,7 +23,7 @@ public record GlowColorManager(@Delegate GlowColorHandler handler) {
         GlowColorHandler delegate = IS_FOLIA || config.isPreferPacketBasedTeams() ? new PacketTeamHandler() : new BukkitTeamHandler();
         GlowColorHandler colorHandler = config.shouldUsePlaceHolders() ? new PlaceHolderTeamHandler(delegate) : delegate;
 
-        instance = new GlowColorManager(colorHandler);
+        instance = new GlowColorManager(new GlowStyleHandler(colorHandler));
         return instance;
     }
 

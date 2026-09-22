@@ -3,6 +3,7 @@ package dev.lumas.glowapi;
 import dev.lumas.core.manager.Modules;
 import dev.lumas.core.util.ContextLogger;
 import dev.lumas.glowapi.config.Config;
+import dev.lumas.glowapi.config.GlowStyleTransformer;
 import dev.lumas.glowapi.config.NamedTextColorTransformer;
 import dev.lumas.glowapi.model.GlowColorManager;
 import eu.okaeri.configs.ConfigManager;
@@ -66,7 +67,7 @@ public final class LumaGlowAPI extends JavaPlugin {
                 it.configurer(new YamlSnakeYamlConfigurer(), new StandardSerdes());
                 it.removeOrphans(true);
                 it.bindFile(this.getDataPath().resolve(fileName));
-                it.serdes(new NamedTextColorTransformer());
+                it.serdes(new NamedTextColorTransformer(), new GlowStyleTransformer());
             });
             cfg.saveDefaults();
             cfg.load(true);

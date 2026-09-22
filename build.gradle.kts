@@ -1,13 +1,11 @@
 import org.apache.tools.ant.filters.ReplaceTokens
-import java.io.ByteArrayOutputStream
-import java.nio.charset.Charset
-
 
 plugins {
     id("java")
     id("maven-publish")
     id("io.freefair.lombok") version "9.2.0"
     id("com.gradleup.shadow") version "9.3.1"
+    id("xyz.jpenilla.run-paper") version "3.0.1"
 }
 
 group = "dev.lumas.glowapi"
@@ -25,6 +23,9 @@ dependencies {
     implementation("net.megavex:scoreboard-library-api:2.8.1")
     runtimeOnly("net.megavex:scoreboard-library-implementation:2.8.1")
     implementation("eu.okaeri:okaeri-configs-yaml-snakeyaml:6.1.0-beta.1")
+    // Resource pack generation for shader glow effects (dev.lumas.glowapi.pack.GlowPack)
+    implementation("team.unnamed:creative-api:1.7.3")
+    implementation("team.unnamed:creative-serializer-minecraft:1.7.3")
 
 
     compileOnly("io.papermc.paper:paper-api:1.21.4-R0.1-SNAPSHOT")
@@ -35,23 +36,26 @@ dependencies {
 
 
 java {
-    toolchain.languageVersion = JavaLanguageVersion.of(21)
+    toolchain.languageVersion = JavaLanguageVersion.of(25)
+    withSourcesJar()
 }
 
 tasks {
     processResources {
-        outputs.upToDateWhen { false }
-        filter<ReplaceTokens>(mapOf(
+        inputs.property("version", project.version.toString())
+        filteringCharset = "UTF-8"
+        filter<ReplaceTokens>(
             "tokens" to mapOf("version" to project.version.toString()),
             "beginToken" to "\${",
             "endToken" to "}"
-        )).filteringCharset = "UTF-8"
+        )
     }
 
     shadowJar {
         val pack = "dev.lumas.glowapi.libs"
         relocate("net.megavex.scoreboardlibrary", "$pack.scoreboardlibrary")
         relocate("eu.okaeri", "$pack.okaeri.configs")
+        relocate("team.unnamed.creative", "$pack.creative")
 
         archiveClassifier.set("")
         archiveVersion.set("")
@@ -65,10 +69,11 @@ tasks {
     build {
         dependsOn(shadowJar)
     }
-}
 
-java {
-    withSourcesJar()
+    runServer {
+        minecraftVersion("26.2")
+        systemProperty("com.mojang.eula.agree", true)
+    }
 }
 
 publishing {
@@ -96,17 +101,9 @@ publishing {
     }
 }
 
-fun commitHash(): String = ByteArrayOutputStream().use { stream ->
-    var branch = "none"
-    try {
-        project.exec {
-            commandLine = listOf("git", "log", "-1", "--format=%h")
-            standardOutput = stream
-        }
-    } catch (_: Exception) {
-        return branch
-    }
-
-    if (stream.size() > 0) branch = stream.toString(Charset.defaultCharset().name()).trim()
-    return branch
-}
+fun commitHash(): String = runCatching {
+    providers.exec {
+        commandLine("git", "log", "-1", "--format=%h")
+        isIgnoreExitValue = true
+    }.standardOutput.asText.get().trim()
+}.getOrDefault("").ifEmpty { "none" }
