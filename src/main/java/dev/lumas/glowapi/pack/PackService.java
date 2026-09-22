@@ -28,7 +28,6 @@ import java.nio.file.Path;
 import java.util.Locale;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.concurrent.atomic.AtomicInteger;
 
 @Register(Autowire.SERVICE)
 public final class PackService implements Service {
@@ -44,7 +43,7 @@ public final class PackService implements Service {
     private volatile String url;
     private volatile PackServer server;
 
-    private final AtomicInteger generation = new AtomicInteger();
+    private final PackPublication publication = new PackPublication();
 
     public PackService() {
         instance = this;
@@ -83,7 +82,7 @@ public final class PackService implements Service {
         GradientPalette palette = GradientPalette.rebuild();
 
         Path zipPath = plugin.getDataPath().resolve(PACK_FILE);
-        int token = generation.incrementAndGet();
+        int token = publication.next();
 
         if (Bukkit.getOnlinePlayers().isEmpty()) {
             publish(token, config, zipPath, palette, false);
@@ -94,35 +93,27 @@ public final class PackService implements Service {
     }
 
     private void publish(int token, Config.Effects config, Path zipPath, GradientPalette palette, boolean async) {
-        BuiltResourcePack result;
         try {
             ResourcePack pack = GlowPack.build(LumaGlowAPI.getInstance().getClass().getClassLoader(),
-                    palette, config.isDebugOverlay());
-            result = MinecraftResourcePackWriter.minecraft().build(pack);
-            Files.createDirectories(zipPath.getParent());
-            Files.write(zipPath, result.data().toByteArray());
+                    palette, config.isDebugOverlay(), config.isSpatialIdentification());
+            BuiltResourcePack result = MinecraftResourcePackWriter.minecraft().build(pack);
+            publication.publish(token, () -> {
+                Files.createDirectories(zipPath.getParent());
+                Files.write(zipPath, result.data().toByteArray());
+                built = result;
+                LOGGER.info("Built " + zipPath + " (sha1 " + result.hash() + ", " + palette.size() + " gradients)"
+                        + (config.isDebugOverlay() ? " [DEBUG OVERLAY ON]" : ""));
+
+                if (resolveDelivery(config, zipPath, result) && async && config.isSendPackOnJoin()) {
+                    sendToEveryone();
+                }
+            });
         } catch (IOException | RuntimeException e) {
             LOGGER.error("Could not build the glow-effect resource pack; effects will not render.", e);
-            return;
-        }
-
-        if (generation.get() != token) {
-            return;
-        }
-        built = result;
-        LOGGER.info("Built " + zipPath + " (sha1 " + result.hash() + ", " + palette.size() + " gradients)"
-                + (config.isDebugOverlay() ? " [DEBUG OVERLAY ON]" : ""));
-
-        if (!resolveDelivery(token, config, zipPath, result)) {
-            return;
-        }
-        if (async && config.isSendPackOnJoin()) {
-
-            sendToEveryone();
         }
     }
 
-    private boolean resolveDelivery(int token, Config.Effects config, Path zipPath, BuiltResourcePack result) {
+    private boolean resolveDelivery(Config.Effects config, Path zipPath, BuiltResourcePack result) {
         String configured = config.getPackUrl();
         boolean configuredSet = configured != null && !configured.isBlank();
         String valid = configuredSet ? normalizeUrl(configured) : null;
@@ -143,10 +134,6 @@ public final class PackService implements Service {
             try {
                 PackServer started = new PackServer(result.data().toByteArray());
                 started.start(serverConfig.getBindAddress(), serverConfig.getPort());
-                if (generation.get() != token) {
-                    started.stop();
-                    return false;
-                }
                 server = started;
                 url = "http://" + serverConfig.getPublicAddress() + ":" + serverConfig.getPort() + "/" + PACK_FILE;
                 LOGGER.info("Pack delivery: built-in server at " + url);
@@ -174,14 +161,15 @@ public final class PackService implements Service {
     }
 
     private void stop() {
-        generation.incrementAndGet();
-        PackServer running = server;
-        if (running != null) {
-            running.stop();
-            server = null;
-        }
-        url = null;
-        built = null;
+        publication.invalidate(() -> {
+            PackServer running = server;
+            if (running != null) {
+                running.stop();
+                server = null;
+            }
+            url = null;
+            built = null;
+        });
     }
 
     private static @Nullable String normalizeUrl(String configured) {

@@ -2,6 +2,7 @@ package dev.lumas.glowapi.model;
 
 import dev.lumas.glowapi.LumaGlowAPI;
 import dev.lumas.glowapi.pack.PackService;
+import dev.lumas.glowapi.effect.GlowEffect;
 import io.papermc.paper.datacomponent.DataComponentTypes;
 import io.papermc.paper.threadedregions.scheduler.ScheduledTask;
 import net.kyori.adventure.key.Key;
@@ -24,10 +25,13 @@ import org.joml.AxisAngle4f;
 import org.joml.Vector3f;
 
 import java.util.Collection;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.ArrayDeque;
+import java.util.function.Consumer;
 
 public final class GlowStyleHandler implements GlowColorHandler {
 
@@ -47,19 +51,70 @@ public final class GlowStyleHandler implements GlowColorHandler {
     public static final String MARKER_TAG = "lumaglowapi_marker";
 
     private static final class Live {
-        @Nullable GlowStyle transientStyle;
+        final ArrayDeque<StyleChange> changes = new ArrayDeque<>();
+        volatile @Nullable GlowStyle transientStyle;
         int transientSerial;
         int id = -1;
+        int preferredId = 15;
+        boolean spatialClear;
         @Nullable UUID markerId;
         int encoded;
+        int effectKey;
+        boolean spatialSolid;
+        int modelCode = -1;
         @Nullable ScheduledTask task;
+        boolean initialized;
         int ticks;
     }
 
+    private static final class StyleChange {
+        final String description;
+        volatile String status = "queued";
+
+        StyleChange(String operation) {
+            String caller = StackWalker.getInstance().walk(frames -> frames
+                    .filter(frame -> !frame.getClassName().startsWith("dev.lumas.glowapi.model."))
+                    .findFirst().map(Object::toString).orElse("unknown caller"));
+            description = operation + " from " + caller;
+        }
+    }
+
+    private void mutate(Entity entity, String operation, Consumer<Live> action) {
+        if (entity == null) return;
+        Live state = liveFor(entity);
+        StyleChange change = new StyleChange(operation);
+        synchronized (state.changes) {
+            if (state.changes.size() == 6) state.changes.removeFirst();
+            state.changes.addLast(change);
+        }
+        Runnable apply = () -> {
+            try {
+                if (closed) throw new IllegalStateException("Glow handler has been closed");
+                action.accept(state);
+                change.status = "applied";
+            } catch (RuntimeException | Error failure) {
+                change.status = "failed: " + failure.getClass().getSimpleName();
+                throw failure;
+            }
+        };
+        if (Bukkit.isOwnedByCurrentRegion(entity)) {
+            apply.run();
+        } else {
+            var scheduled = entity.getScheduler().run(LumaGlowAPI.getInstance(), task -> apply.run(),
+                    () -> change.status = "entity retired before application");
+            if (scheduled == null) change.status = "entity scheduler rejected request";
+        }
+    }
+
     private static final int VIEWER_CHECK_TICKS = 20;
+    private static final MarkerCleanup MARKER_CLEANUP = new MarkerCleanup(
+            Bukkit::getEntity, Bukkit::isOwnedByCurrentRegion,
+            () -> LumaGlowAPI.getInstance().isEnabled(),
+            marker -> marker.getScheduler().run(LumaGlowAPI.getInstance(), task -> marker.remove(), null));
 
     private final GlowColorHandler delegate;
     private final Map<UUID, Live> live = new ConcurrentHashMap<>();
+    private volatile boolean closed;
 
     public GlowStyleHandler(@NotNull GlowColorHandler delegate) {
         if (delegate instanceof GlowStyleHandler) {
@@ -79,9 +134,8 @@ public final class GlowStyleHandler implements GlowColorHandler {
 
     @Override
     public void setStyle(@NotNull Entity entity, @NotNull GlowStyle style) {
-        runOwned(entity, () -> {
+        mutate(entity, "setStyle(" + style.serialize() + ")", l -> {
             entity.getPersistentDataContainer().set(STYLE_KEY, PersistentDataType.STRING, style.serialize());
-            Live l = liveFor(entity);
             l.transientStyle = null;
             l.transientSerial++;
             sync(entity, l);
@@ -90,8 +144,7 @@ public final class GlowStyleHandler implements GlowColorHandler {
 
     @Override
     public void setTransientStyle(@NotNull Entity entity, @NotNull GlowStyle style, @Nullable Long duration) {
-        runOwned(entity, () -> {
-            Live l = liveFor(entity);
+        mutate(entity, "setTransientStyle(" + style.serialize() + ", duration=" + duration + ")", l -> {
             l.transientStyle = style;
             int serial = ++l.transientSerial;
             sync(entity, l);
@@ -100,6 +153,12 @@ public final class GlowStyleHandler implements GlowColorHandler {
                     if (l.transientSerial == serial) {
                         l.transientStyle = null;
                         sync(entity, l);
+                        synchronized (l.changes) {
+                            if (l.changes.size() == 6) l.changes.removeFirst();
+                            StyleChange expired = new StyleChange("transient expired");
+                            expired.status = "applied";
+                            l.changes.addLast(expired);
+                        }
                     }
                 }, null, Math.max(1L, duration));
             }
@@ -118,9 +177,8 @@ public final class GlowStyleHandler implements GlowColorHandler {
 
     @Override
     public void removeColor(Entity entity) {
-        runOwned(entity, () -> {
+        mutate(entity, "removeColor()", l -> {
             entity.getPersistentDataContainer().remove(STYLE_KEY);
-            Live l = liveFor(entity);
             l.transientStyle = null;
             l.transientSerial++;
             delegate.removeColor(entity);
@@ -130,7 +188,11 @@ public final class GlowStyleHandler implements GlowColorHandler {
 
     @Override
     public void update(Entity entity) {
-        runOwned(entity, () -> sync(entity, liveFor(entity)));
+        mutate(entity, "update() / clear transient", l -> {
+            l.transientStyle = null;
+            l.transientSerial++;
+            sync(entity, l);
+        });
     }
 
     @Override
@@ -145,6 +207,12 @@ public final class GlowStyleHandler implements GlowColorHandler {
 
     @Override
     public @Nullable TextColor getColor(Entity entity) {
+        Live l = live.get(entity.getUniqueId());
+        if (l != null && l.transientStyle instanceof GlowStyle.Named named) {
+            // TAB may read on a different thread or refresh the delegate's cache.
+            // The active API override remains authoritative until update/expiry.
+            return named.color();
+        }
         return delegate.getColor(entity);
     }
 
@@ -153,7 +221,70 @@ public final class GlowStyleHandler implements GlowColorHandler {
         return l == null ? -1 : l.id;
     }
 
+    public List<String> diagnostics(@NotNull Entity entity) {
+        if (!Bukkit.isOwnedByCurrentRegion(entity)) {
+            throw new IllegalStateException("Glow diagnostics must run on the entity's region");
+        }
+        List<String> lines = new ArrayList<>();
+        GlowStyle style = getStyle(entity);
+        Live l = live.get(entity.getUniqueId());
+        ItemDisplay marker = l == null ? null : findMarker(entity, l);
+        lines.add("Selected style: " + (style == null ? "none" : style.serialize()));
+        lines.add("Active transient override: " + (l == null || l.transientStyle == null
+                ? "none" : l.transientStyle.serialize()));
+        if (l == null) {
+            lines.add("Style requests: none received by this handler");
+        } else {
+            synchronized (l.changes) {
+                if (l.changes.isEmpty()) lines.add("Style requests: none received by this handler");
+                for (StyleChange change : l.changes) {
+                    lines.add("Style request [" + change.status + "]: " + change.description);
+                }
+            }
+        }
+        lines.add("Actual server glowing: " + entity.isGlowing());
+        lines.add("Team handler: " + root().getClass().getSimpleName());
+        lines.add("Plugin-assigned team color: " + delegate.getColor(entity));
+        lines.add("Spatial mode: " + spatialIdentification());
+        if (l != null && l.id >= 0) {
+            lines.add("Effect identity: " + l.id + " (" + ID_COLORS.get(l.id) + "), payload: "
+                    + String.format("%06X", l.encoded & 0xffffff));
+            if (spatialIdentification()) {
+                lines.add("Spatial allocation clear: " + l.spatialClear);
+            }
+        }
+        lines.add("Marker: " + (marker == null ? "missing" : marker.getUniqueId()));
+        if (marker != null) {
+            Color color = marker.getGlowColorOverride();
+            lines.add("Marker glowing: " + marker.isGlowing() + ", color: "
+                    + (color == null ? "none" : String.format("#%06X", color.asRGB())));
+            lines.add("Marker visible by default: " + marker.isVisibleByDefault());
+        }
+        if (!(style instanceof GlowStyle.Effect)) {
+            lines.add("Result: this player has an ordinary color, not a custom shader effect.");
+        } else if (!entity.isGlowing()) {
+            lines.add("Result: no effect marker is emitted while the server glowing flag is off.");
+            lines.add("Viewer-only glow from another plugin does not enable this marker.");
+        } else if (l == null || l.id < 0 || marker == null) {
+            lines.add("Result: custom effect selected but its marker is missing.");
+        } else if (spatialIdentification() && !l.spatialClear) {
+            lines.add("Result: the server is suppressing this marker because no safe local identity was found.");
+        } else if (!marker.isGlowing()) {
+            lines.add("Result: the marker is not glowing despite an active effect; inspect its next tick.");
+        } else {
+            lines.add("Result: effect marker active. This does not verify the client's team color or rendered effect.");
+        }
+        return List.copyOf(lines);
+    }
+
     private void sync(Entity entity, Live l) {
+        if (closed) {
+            return;
+        }
+        if (!l.initialized) {
+            MARKER_CLEANUP.removeStalePassengers(entity, MARKER_TAG, l.markerId);
+            l.initialized = true;
+        }
         boolean isTransient = l.transientStyle != null;
         GlowStyle effective = isTransient ? l.transientStyle : permanentStyle(entity);
         boolean explicit = effective != null;
@@ -162,15 +293,20 @@ public final class GlowStyleHandler implements GlowColorHandler {
         }
 
         if (effective instanceof GlowStyle.Effect e) {
-            if (l.id < 0) {
+            l.spatialSolid = spatialIdentification() && e.effect().type() == GlowEffect.Type.SOLID;
+            l.effectKey = l.spatialSolid ? 0x1000000 | e.effect().rgb() : e.effect().encode(0) & 0xffff;
+            if (spatialIdentification()) {
+                l.preferredId = ID_COLORS.indexOf(LumaGlowAPI.getOkaeriConfig().getEffects().nametagColor(e));
+                updateSpatialIdentity(entity, l, l.effectKey);
+            } else if (l.id < 0) {
                 l.id = allocateId();
             }
-            ensureMarker(entity, l, e.effect().encode(l.id));
+            ensureMarker(entity, l, l.spatialSolid ? e.effect().rgb() : e.effect().encode(l.id));
             delegate.setTransientColor(entity, ID_COLORS.get(l.id), null);
             return;
         }
 
-        dropMarker(entity, l);
+        dropMarker(l);
         l.id = -1;
         if (effective instanceof GlowStyle.Named(NamedTextColor color) && explicit) {
             if (isTransient) {
@@ -204,6 +340,10 @@ public final class GlowStyleHandler implements GlowColorHandler {
 
     private Live liveFor(Entity entity) {
         return live.computeIfAbsent(entity.getUniqueId(), k -> new Live());
+    }
+
+    private static boolean spatialIdentification() {
+        return LumaGlowAPI.getOkaeriConfig().getEffects().isSpatialIdentification();
     }
 
     private int allocateId() {
@@ -244,12 +384,7 @@ public final class GlowStyleHandler implements GlowColorHandler {
     private static void dropStray(Live l) {
         UUID stray = l.markerId;
         l.markerId = null;
-        if (stray != null) {
-            Entity entity = Bukkit.getEntity(stray);
-            if (entity != null) {
-                runOwned(entity, entity::remove);
-            }
-        }
+        MARKER_CLEANUP.remove(stray);
     }
 
     private void ensureMarker(Entity entity, Live l, int encoded) {
@@ -259,15 +394,17 @@ public final class GlowStyleHandler implements GlowColorHandler {
                 riding.setGlowColorOverride(Color.fromRGB(encoded & 0xFFFFFF));
                 l.encoded = encoded;
             }
-            mirrorGlow(entity, riding);
+            updateMarkerModel(riding, l);
+            mirrorGlow(entity, riding, l);
             return;
         }
         dropStray(l);
+        MARKER_CLEANUP.removeStalePassengers(entity, MARKER_TAG, null);
         l.encoded = encoded;
         if (!entity.isValid() || entity.isDead()) {
             return;
         }
-        ItemDisplay display = spawnMarker(entity, encoded);
+        ItemDisplay display = spawnMarker(entity, encoded, l);
         l.markerId = display.getUniqueId();
 
         if (l.task == null) {
@@ -277,38 +414,86 @@ public final class GlowStyleHandler implements GlowColorHandler {
     }
 
     private void tick(Entity entity, Live l) {
-        if (l.id < 0 || !live.containsKey(entity.getUniqueId())) {
-            dropMarker(entity, l);
+        if (closed || l.id < 0 || live.get(entity.getUniqueId()) != l) {
+            dropMarker(l);
             return;
+        }
+        if (spatialIdentification()) {
+            int previousId = l.id;
+            updateSpatialIdentity(entity, l, l.effectKey);
+            if (l.id != previousId) {
+                delegate.setTransientColor(entity, ID_COLORS.get(l.id), null);
+            }
         }
         ItemDisplay display = findMarker(entity, l);
         if (display != null) {
-
-            mirrorGlow(entity, display);
+            if (spatialIdentification() && !l.spatialSolid) {
+                int encoded = ((0x20 | l.id) << 16) | (l.encoded & 0xffff);
+                if (encoded != l.encoded) {
+                    display.setGlowColorOverride(Color.fromRGB(encoded));
+                    l.encoded = encoded;
+                }
+            }
+            updateMarkerModel(display, l);
+            mirrorGlow(entity, display, l);
             follow(entity, display);
             if (++l.ticks % VIEWER_CHECK_TICKS == 0) {
                 reconcileViewers(display);
             }
         } else {
+            if (spatialIdentification() && !l.spatialSolid) {
+                l.encoded = ((0x20 | l.id) << 16) | (l.encoded & 0xffff);
+            }
             ensureMarker(entity, l, l.encoded);
         }
     }
 
-    private static void mirrorGlow(Entity entity, ItemDisplay marker) {
-        boolean glowing = entity.isGlowing();
+    private static void mirrorGlow(Entity entity, ItemDisplay marker, Live l) {
+        boolean glowing = entity.isGlowing() && (!spatialIdentification() || l.spatialClear);
         if (marker.isGlowing() != glowing) {
             marker.setGlowing(glowing);
         }
     }
 
-    private ItemDisplay spawnMarker(Entity entity, int encoded) {
-        ItemStack stack = ItemStack.of(Material.PAPER);
+    private void updateSpatialIdentity(Entity entity, Live l, int payload) {
+        int unavailable = entity.isGlowing() ? SpatialGlowGuard.unavailableColors(entity,
+                entity.getNearbyEntities(10.0, 12.0, 10.0), MARKER_TAG,
+                Bukkit::isOwnedByCurrentRegion, neighbor -> {
+                    Live other = live.get(neighbor.getUniqueId());
+                    if (other != null && other.id >= 0) {
+                        return other.effectKey == payload ? 0 : 1 << other.id;
+                    }
+                    return SpatialGlowGuard.ordinaryColorMask(ID_COLORS, delegate.getColor(neighbor));
+                }) : 0;
+        int selected = SpatialGlowGuard.selectColor(l.id, l.preferredId, unavailable);
+        l.spatialClear = selected >= 0;
+        l.id = selected >= 0 ? selected : l.id >= 0 ? l.id : l.preferredId;
+    }
 
-        stack.setData(DataComponentTypes.ITEM_MODEL, MARKER_MODEL);
+    private static ItemStack markerStack(Live l) {
+        l.modelCode = spatialIdentification() ? l.id + (l.spatialSolid ? 16 : 0) : -1;
+        ItemStack stack = ItemStack.of(Material.PAPER);
+        stack.setData(DataComponentTypes.ITEM_MODEL, l.modelCode < 0 ? MARKER_MODEL
+                : Key.key("lumaglowapi", "marker_" + l.modelCode));
+        return stack;
+    }
+
+    private static void updateMarkerModel(ItemDisplay marker, Live l) {
+        int wanted = spatialIdentification() ? l.id + (l.spatialSolid ? 16 : 0) : -1;
+        if (l.modelCode != wanted) {
+            marker.setItemStack(markerStack(l));
+        }
+    }
+
+    private ItemDisplay spawnMarker(Entity entity, int encoded, Live l) {
+        ItemStack stack = markerStack(l);
 
         boolean assumePackLoaded = LumaGlowAPI.getOkaeriConfig().getEffects().isAssumePackLoaded();
         Transformation transform = markerTransform(entity);
         ItemDisplay display = entity.getWorld().spawn(entity.getLocation(), ItemDisplay.class, d -> {
+            if (spatialIdentification()) {
+                d.setRotation(0f, 0f);
+            }
             d.setItemStack(stack);
             d.setItemDisplayTransform(ItemDisplay.ItemDisplayTransform.NONE);
             d.setTransformation(transform);
@@ -323,7 +508,7 @@ public final class GlowStyleHandler implements GlowColorHandler {
             d.setSilent(true);
             d.addScoreboardTag(MARKER_TAG);
             d.setGlowColorOverride(Color.fromRGB(encoded & 0xFFFFFF));
-            d.setGlowing(entity.isGlowing());
+            d.setGlowing(entity.isGlowing() && (!spatialIdentification() || l.spatialClear));
 
             d.setVisibleByDefault(assumePackLoaded);
         });
@@ -355,6 +540,10 @@ public final class GlowStyleHandler implements GlowColorHandler {
     }
 
     private static Transformation markerTransform(Entity entity) {
+        if (spatialIdentification()) {
+            return new Transformation(new Vector3f(0f, -(float) entity.getHeight() + 1.0f, 0f),
+                    new AxisAngle4f(), new Vector3f(2.0f), new AxisAngle4f());
+        }
         float gap = (float) LumaGlowAPI.getOkaeriConfig().getEffects().getMarkerGap();
         float scale = Math.max(1.0f, (float) entity.getWidth() + 0.4f);
 
@@ -374,25 +563,12 @@ public final class GlowStyleHandler implements GlowColorHandler {
         }
     }
 
-    private void dropMarker(Entity entity, Live l) {
+    private void dropMarker(Live l) {
         if (l.task != null) {
             l.task.cancel();
             l.task = null;
         }
-        for (Entity passenger : entity.getPassengers()) {
-            runOwned(passenger, () -> {
-                if (passenger.getScoreboardTags().contains(MARKER_TAG)) {
-                    passenger.remove();
-                }
-            });
-        }
-        if (l.markerId != null) {
-            Entity stray = Bukkit.getEntity(l.markerId);
-            if (stray != null) {
-                runOwned(stray, stray::remove);
-            }
-            l.markerId = null;
-        }
+        dropStray(l);
     }
 
     private static void runOwned(@Nullable Entity entity, Runnable task) {
@@ -410,6 +586,9 @@ public final class GlowStyleHandler implements GlowColorHandler {
     @Override
     public void addPlayer(Player player) {
         delegate.addPlayer(player);
+        // Joining initializes the display without cancelling an override that
+        // another plugin already supplied in its PlayerJoinEvent listener.
+        runOwned(player, () -> sync(player, liveFor(player)));
     }
 
     @ApiStatus.Internal
@@ -417,7 +596,7 @@ public final class GlowStyleHandler implements GlowColorHandler {
     public void removePlayer(Player player) {
         Live l = live.remove(player.getUniqueId());
         if (l != null) {
-            runOwned(player, () -> dropMarker(player, l));
+            dropMarker(l);
         }
         delegate.removePlayer(player);
     }
@@ -425,14 +604,12 @@ public final class GlowStyleHandler implements GlowColorHandler {
     @ApiStatus.Internal
     @Override
     public void close() {
-        for (Map.Entry<UUID, Live> entry : live.entrySet()) {
-            Entity entity = Bukkit.getEntity(entry.getKey());
-            if (entity != null) {
-                Live l = entry.getValue();
-                entity.getScheduler().execute(LumaGlowAPI.getInstance(), () -> {
-                    dropMarker(entity, l);
-                }, null, 1);
-            }
+        if (closed) {
+            return;
+        }
+        closed = true;
+        for (Live l : live.values()) {
+            dropMarker(l);
         }
         live.clear();
         delegate.close();

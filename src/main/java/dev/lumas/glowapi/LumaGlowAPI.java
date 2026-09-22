@@ -5,6 +5,7 @@ import dev.lumas.core.util.ContextLogger;
 import dev.lumas.glowapi.config.Config;
 import dev.lumas.glowapi.config.GlowStyleTransformer;
 import dev.lumas.glowapi.config.NamedTextColorTransformer;
+import dev.lumas.glowapi.effect.GradientPalette;
 import dev.lumas.glowapi.model.GlowColorManager;
 import eu.okaeri.configs.ConfigManager;
 import eu.okaeri.configs.OkaeriConfig;
@@ -34,6 +35,7 @@ public final class LumaGlowAPI extends JavaPlugin {
         instance = this;
         moduleManager = new Modules(this);
         okaeriConfig = loadOkaeriFile(Config.class, "config.yml");
+        GradientPalette.rebuild();
 
         try {
             scoreboardLibrary = ScoreboardLibrary.loadScoreboardLibrary(this);
@@ -42,10 +44,9 @@ public final class LumaGlowAPI extends JavaPlugin {
             LOGGER.error("Using NoopScoreboardLibrary.", e);
         }
 
+        GlowColorManager manager = GlowColorManager.newInstance();
         Bukkit.getOnlinePlayers().forEach(player -> {
-            GlowColorManager manager = GlowColorManager.getInstance();
             manager.addPlayer(player);
-            manager.update(player);
         });
 
         moduleManager.register();
@@ -53,12 +54,16 @@ public final class LumaGlowAPI extends JavaPlugin {
 
     @Override
     public void onDisable() {
-        moduleManager.unregister();
+        if (moduleManager != null) {
+            moduleManager.unregister();
+        }
         GlowColorManager manager = GlowColorManager.getInstanceOrNull();
         if (manager != null) {
             manager.close();
         }
-        scoreboardLibrary.close();
+        if (scoreboardLibrary != null) {
+            scoreboardLibrary.close();
+        }
     }
 
     public <T extends OkaeriConfig> T loadOkaeriFile(Class<T> clazz, String fileName) {

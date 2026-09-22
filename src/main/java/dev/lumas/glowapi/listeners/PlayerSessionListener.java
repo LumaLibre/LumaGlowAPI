@@ -19,7 +19,6 @@ public class PlayerSessionListener implements Listener {
         GlowColorManager glowColorManager = GlowColorManager.getInstance();
         Player player = event.getPlayer();
         glowColorManager.addPlayer(player);
-        glowColorManager.update(player);
         if (LumaGlowAPI.getOkaeriConfig().getEffects().isSendPackOnJoin()) {
             PackService.getInstance().send(player);
         }

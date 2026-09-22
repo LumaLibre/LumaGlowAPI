@@ -33,7 +33,7 @@ public class ColorPlaceholder extends SoloAbstractPlaceholder {
 
         TextColor color;
 
-        if (!player.isGlowing()) {
+        if (!config.useAssignedPlaceholderColor(player.isGlowing())) {
             if (config.isOnlyShowPlaceholderWhenGlowing()) {
                 return "";
             }

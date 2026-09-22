@@ -11,7 +11,7 @@ import org.bukkit.persistence.PersistentDataType;
 import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.HashMap;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.Map;
 import java.util.UUID;
 
@@ -23,7 +23,7 @@ public class PlaceHolderTeamHandler implements GlowColorHandler {
     public PlaceHolderTeamHandler(GlowColorHandler entityDelegate) {
         Preconditions.checkArgument(!(entityDelegate instanceof  PlaceHolderTeamHandler), "Entity delegate cannot be an instance of PlaceHolderTeamHandler");
         this.entityDelegate = entityDelegate;
-        this.playerColors = new HashMap<>();
+        this.playerColors = new ConcurrentHashMap<>();
     }
 
     public PlaceHolderTeamHandler() {
@@ -140,6 +140,7 @@ public class PlaceHolderTeamHandler implements GlowColorHandler {
     @ApiStatus.Internal
     @Override
     public void close() {
+        playerColors.clear();
         entityDelegate.close();
     }
 
@@ -152,6 +153,7 @@ public class PlaceHolderTeamHandler implements GlowColorHandler {
     @ApiStatus.Internal
     @Override
     public void removePlayer(Player player) {
+        playerColors.remove(player.getUniqueId());
         entityDelegate.removePlayer(player);
     }
 }

@@ -30,7 +30,6 @@ public class ReloadCommand implements SubCommand {
         Bukkit.getOnlinePlayers().forEach(player -> {
             GlowColorManager glowColorManager = GlowColorManager.getInstance();
             glowColorManager.addPlayer(player);
-            glowColorManager.update(player);
         });
 
         PackService pack = PackService.getInstance();

@@ -26,6 +26,7 @@ public interface GlowColorHandler {
 
     void removeColor(Entity entity);
 
+    /** Clears the transient override and reapplies the saved style or permission default. */
     void update(Entity entity);
 
     @Nullable TextColor getColor(Entity entity);

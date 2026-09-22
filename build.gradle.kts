@@ -40,6 +40,25 @@ java {
     withSourcesJar()
 }
 
+val startupTest = sourceSets.create("startupTest") {
+    java.srcDir("src/test/startup")
+    compileClasspath += sourceSets.main.get().output + configurations.compileClasspath.get()
+    runtimeClasspath += output + compileClasspath
+}
+
+val startupRegression = tasks.register<JavaExec>("startupRegression") {
+    dependsOn(tasks.named(startupTest.classesTaskName))
+    classpath = startupTest.runtimeClasspath
+    mainClass.set("dev.lumas.glowapi.StartupRegression")
+    javaLauncher.set(javaToolchains.launcherFor {
+        languageVersion.set(JavaLanguageVersion.of(25))
+    })
+}
+
+tasks.check {
+    dependsOn(startupRegression)
+}
+
 tasks {
     processResources {
         inputs.property("version", project.version.toString())

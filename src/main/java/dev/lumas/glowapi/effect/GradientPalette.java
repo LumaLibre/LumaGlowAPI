@@ -1,8 +1,11 @@
 package dev.lumas.glowapi.effect;
 
 import dev.lumas.glowapi.LumaGlowAPI;
+import dev.lumas.glowapi.config.Config;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -23,6 +26,7 @@ public final class GradientPalette {
     public static final double DEFAULT_SPEED = 1.0;
     private static final double MAX_SPEED = 15.0;
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(GradientPalette.class);
     private static GradientPalette instance;
 
     private final List<Gradient> gradients;
@@ -37,14 +41,14 @@ public final class GradientPalette {
         this.indexByName = Collections.unmodifiableMap(byName);
     }
 
-    public static @NotNull GradientPalette get() {
+    public static synchronized @NotNull GradientPalette get() {
         if (instance == null) {
             instance = build();
         }
         return instance;
     }
 
-    public static @NotNull GradientPalette rebuild() {
+    public static synchronized @NotNull GradientPalette rebuild() {
         instance = build();
         return instance;
     }
@@ -59,7 +63,8 @@ public final class GradientPalette {
             }
         }
 
-        Map<String, List<String>> configured = LumaGlowAPI.getOkaeriConfig().getEffects().getGradients();
+        Config config = LumaGlowAPI.getOkaeriConfig();
+        Map<String, List<String>> configured = config == null ? Map.of() : config.getEffects().getGradients();
         if (configured != null) {
             for (Map.Entry<String, List<String>> entry : configured.entrySet()) {
                 String name = entry.getKey() == null ? "" : entry.getKey().trim().toLowerCase(Locale.ROOT);
@@ -73,7 +78,7 @@ public final class GradientPalette {
         List<Gradient> gradients = new ArrayList<>(collected.size());
         for (Map.Entry<String, Gradient> entry : collected.entrySet()) {
             if (gradients.size() >= MAX_GRADIENTS) {
-                LumaGlowAPI.getInstance().getSLF4JLogger().warn(
+                LOGGER.warn(
                         "More than {} gradients defined; ignoring '{}' and any after it.", MAX_GRADIENTS, entry.getKey());
                 break;
             }
@@ -83,7 +88,7 @@ public final class GradientPalette {
     }
 
     private static @Nullable Gradient parseGradient(String name, @Nullable List<String> raw) {
-        var logger = LumaGlowAPI.getInstance().getSLF4JLogger();
+        Logger logger = LOGGER;
         if (name.isEmpty()) {
             logger.warn("Ignoring a gradient in effects.gradients with an empty name.");
             return null;

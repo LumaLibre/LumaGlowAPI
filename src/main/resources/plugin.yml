@@ -24,6 +24,11 @@ permissions:
     default: op
     children:
       lumaglowapi.command: true
+  lumaglowapi.command.diagnose:
+    description: Allows inspection of player glow and marker state
+    default: op
+    children:
+      lumaglowapi.command: true
   lumaglowapi.command.reload:
     description: Allows reloading of the config
     default: op

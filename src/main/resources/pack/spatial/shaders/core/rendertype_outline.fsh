@@ -4,11 +4,16 @@ uniform sampler2D Sampler0;
 
 //!in 0 vec4 vertexColor
 //!in 1 vec2 texCoord0
-//!in 2 flat int isMarker
+//!in 2 vec3 relativePosition
+//!in 3 vec2 verticalClipDistance
+//!in 4 flat ivec4 markerLocation
+//!in 5 vec2 markerUv
+//!in 6 flat int markerSample
 
 //!out 0 vec4 fragColor
 
 //!snippet glow_encoding
+//!snippet spatial
 //!snippet teamid
 
 const float SKIN_WIDTH = 64.0;
@@ -50,18 +55,30 @@ float bodyHeight(vec2 skinUv) {
 
 void main() {
     ivec3 colorBytes = decodeBytes(vertexColor.rgb);
-    if (isMarker == 1) {
-        if (gl_FragCoord.y >= float(FIRST_SILHOUETTE_ROW)) {
+    if (markerLocation.w >= 0) {
+        float targetWidth = float(SPATIAL_COLUMNS) / abs(dFdx(markerUv.x));
+        float targetHeight = 1.0 / abs(dFdy(markerUv.y));
+        if (targetWidth + 0.01 < float(SPATIAL_COLUMNS)
+                || targetHeight * METADATA_FRACTION + 0.01 < float(SPATIAL_ROWS)) {
             discard;
         }
-        fragColor = vec4(vertexColor.rgb, 1.0);
+        int slot = markerLocation.w;
+        if (slot < 0) {
+            discard;
+        }
+        ivec3 cell = markerLocation.xyz;
+        int row = int(gl_FragCoord.y) - (slot / SPATIAL_COLUMNS) * 2;
+        if (row == 0) {
+            fragColor = vec4(vec3(cell), float(LOCATION_ALPHA)) / BYTE_MAX;
+        } else if (row == 1) {
+            fragColor = vec4(vertexColor.rgb, float(markerSample >= 32 ? SOLID_ALPHA : PAYLOAD_ALPHA) / BYTE_MAX);
+        } else {
+            discard;
+        }
         return;
     }
 
-    if (gl_FragCoord.y < float(FIRST_SILHOUETTE_ROW)) {
-        discard;
-    }
-    if (texture(Sampler0, texCoord0).a == 0.0) {
+    if (any(lessThan(verticalClipDistance, vec2(0.0))) || texture(Sampler0, texCoord0).a == 0.0) {
         discard;
     }
 
@@ -71,7 +88,12 @@ void main() {
         return;
     }
 
-    float normalizedBodyHeight = bodyHeight(texCoord0) / PLAYER_HEIGHT;
-    float encodedEffectId = float(SILHOUETTE_TAG * EFFECT_ID_COUNT + effectId) / BYTE_MAX;
-    fragColor = vec4(encodedEffectId, normalizedBodyHeight, 0.0, 1.0);
+    if (!locationInRange(relativePosition)) {
+        fragColor = vec4(vertexColor.rgb, 1.0);
+        return;
+    }
+    float normalizedBodyHeight = clamp(bodyHeight(texCoord0) / PLAYER_HEIGHT, 0.0, 1.0);
+    int heightBand = int(round(normalizedBodyHeight * 14.0));
+    int identity = 1 + effectId * 15 + heightBand;
+    fragColor = vec4(vec3(locationKey(relativePosition)), float(identity)) / BYTE_MAX;
 }

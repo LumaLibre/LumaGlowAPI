@@ -25,6 +25,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
@@ -43,6 +44,7 @@ public final class GlowPack {
     private static final String SPIRV_OVERLAY = "spirv";
 
     private static final int MARKER_ALPHA = 5;
+    private static final float SPATIAL_MARKER_MODEL_HALF_WIDTH = 0.0625f;
 
     private static final String RESOURCE_ROOT = "pack/";
 
@@ -55,6 +57,11 @@ public final class GlowPack {
 
     public static @NotNull ResourcePack build(@NotNull ClassLoader resources, @NotNull GradientPalette gradients,
                                              boolean debug) {
+        return build(resources, gradients, debug, false);
+    }
+
+    public static @NotNull ResourcePack build(@NotNull ClassLoader resources, @NotNull GradientPalette gradients,
+                                             boolean debug, boolean spatial) {
         ResourcePack pack = ResourcePack.resourcePack();
         pack.packMeta(PackFormat.format(PACK_FORMAT, MIN_FORMAT, MAX_FORMAT),
                 Component.text("LumaGlowAPI - shader glow effects"));
@@ -63,29 +70,27 @@ public final class GlowPack {
         Key textureRef = Key.key(NAMESPACE, "item/marker");
         pack.texture(Texture.texture(textureKey, Writable.bytes(markerPng())));
 
-        ElementFace face = ElementFace.face().uv(TextureUV.uv(0f, 0f, 1f, 1f)).texture("#0").build();
-
-        Element markerQuad = Element.element()
-                .from(7f, 7f, 7f)
-                .to(9f, 9f, 9f)
-                .faces(Map.of(CubeFace.UP, face))
-                .build();
-        pack.model(Model.model()
-                .key(Key.key(NAMESPACE, "item/marker"))
-                .textures(ModelTextures.builder()
-                        .variables(Map.of("0", ModelTexture.ofKey(textureRef)))
-                        .particle(ModelTexture.ofKey(textureRef))
-                        .build())
-                .elements(markerQuad)
-                .build());
+        if (spatial) {
+            for (int code = 0; code < 32; code++) {
+                addMarkerModel(pack, textureRef, "marker_" + code, code);
+                pack.unknownFile("assets/" + NAMESPACE + "/items/marker_" + code + ".json",
+                        Writable.stringUtf8("{\"model\":{\"type\":\"minecraft:model\",\"model\":\""
+                                + NAMESPACE + ":item/marker_" + code + "\"}}"));
+            }
+            addMarkerModel(pack, textureRef, "marker", 15);
+        } else {
+            addMarkerModel(pack, textureRef, "marker", -1);
+        }
         bundled(pack, resources, "assets/" + NAMESPACE + "/items/marker.json", "items/marker.json");
 
-        bundled(pack, resources, "assets/minecraft/post_effect/entity_outline.json", "post_effect/entity_outline.json");
+        String variantRoot = spatial ? "spatial/" : "";
+        bundled(pack, resources, "assets/minecraft/post_effect/entity_outline.json",
+                variantRoot + "post_effect/entity_outline.json");
 
         String palette = paletteGlsl(gradients);
         Map<String, String> snippets = new HashMap<>();
         for (String[] shader : SHADERS) {
-            String source = read(resources, RESOURCE_ROOT + shader[0])
+            String source = read(resources, RESOURCE_ROOT + variantRoot + shader[0])
                     .replace(PALETTE_TOKEN, palette)
                     .replace(DEBUG_TOKEN, debug ? "#define GLOW_DEBUG 1" : "");
             pack.unknownFile(shader[1], Writable.stringUtf8(expand(source, Dialect.LEGACY, resources, snippets)));
@@ -96,6 +101,28 @@ public final class GlowPack {
         pack.overlaysMeta(OverlaysMeta.of(
                 OverlayEntry.of(PackFormat.format(SPIRV_FORMAT, SPIRV_FORMAT, MAX_FORMAT), SPIRV_OVERLAY)));
         return pack;
+    }
+
+    private static void addMarkerModel(ResourcePack pack, Key texture, String name, int code) {
+        List<Element> cells = new ArrayList<>();
+        int count = code < 0 ? 1 : 27;
+        for (int sample = 0; sample < count; sample++) {
+            // Four texels carry the face corners explicitly. Do not encode metadata in
+            // sub-texel UV fractions or infer corners from the client's vertex order.
+            float u = sample * 0.5f;
+            float v = Math.max(code, 0) * 0.5f;
+            TextureUV uv = TextureUV.uv((u + 0.0625f) / 16f, (v + 0.0625f) / 16f,
+                    (u + 0.4375f) / 16f, (v + 0.4375f) / 16f);
+            ElementFace face = ElementFace.face().uv(uv).texture("#0").build();
+            float halfWidth = code < 0 ? 1f : SPATIAL_MARKER_MODEL_HALF_WIDTH;
+            cells.add(Element.element().from(8f - halfWidth, code < 0 ? 7f : 8f, 8f - halfWidth)
+                    .to(8f + halfWidth, code < 0 ? 9f : 8f, 8f + halfWidth)
+                    .faces(Map.of(CubeFace.UP, face)).build());
+        }
+        pack.model(Model.model().key(Key.key(NAMESPACE, "item/" + name))
+                .textures(ModelTextures.builder().variables(Map.of("0", ModelTexture.ofKey(texture)))
+                        .particle(ModelTexture.ofKey(texture)).build())
+                .elements(cells).build());
     }
 
     private static final String[][] SHADERS = {
@@ -150,8 +177,13 @@ public final class GlowPack {
                     if (dialect == Dialect.SPIRV) {
                         out.append("layout(location = ").append(Integer.parseInt(parts[1])).append(") ");
                     }
+                    int typeIndex = 2;
+                    if (parts[typeIndex].equals("flat")) {
+                        out.append("flat ");
+                        typeIndex++;
+                    }
                     out.append(parts[0]);
-                    for (int i = 2; i < parts.length; i++) {
+                    for (int i = typeIndex; i < parts.length; i++) {
                         out.append(' ').append(parts[i]);
                     }
                     out.append(';').append(trailing).append('\n');
@@ -248,11 +280,15 @@ public final class GlowPack {
     }
 
     private static byte[] markerPng() {
-        BufferedImage image = new BufferedImage(16, 16, BufferedImage.TYPE_INT_ARGB);
-        int argb = (MARKER_ALPHA << 24) | 0xFFFFFF;
-        for (int y = 0; y < 16; y++) {
-            for (int x = 0; x < 16; x++) {
-                image.setRGB(x, y, argb);
+        BufferedImage image = new BufferedImage(64, 64, BufferedImage.TYPE_INT_ARGB);
+        for (int code = 0; code < 32; code++) {
+            for (int sample = 0; sample < 27; sample++) {
+                for (int corner = 0; corner < 4; corner++) {
+                    int x = sample * 2 + (corner >= 2 ? 1 : 0);
+                    int y = code * 2 + (corner == 1 || corner == 2 ? 1 : 0);
+                    image.setRGB(x, y, (MARKER_ALPHA << 24) | ((240 + corner) << 16)
+                            | (sample << 8) | code);
+                }
             }
         }
         try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
