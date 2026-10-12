@@ -43,6 +43,9 @@ public final class GradientPalette {
 
     public static synchronized @NotNull GradientPalette get() {
         if (instance == null) {
+            if (LumaGlowAPI.getOkaeriConfig() == null) {
+                return build();
+            }
             instance = build();
         }
         return instance;
