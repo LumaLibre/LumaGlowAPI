@@ -44,7 +44,7 @@ public class PacketTeamHandler implements GlowColorHandler {
     }
 
     @Override
-    public void setColor(Entity entity, NamedTextColor color) {
+    public synchronized void setColor(Entity entity, NamedTextColor color) {
         if (Bukkit.isOwnedByCurrentRegion(entity)) {
             entity.getPersistentDataContainer().set(COLOR_KEY, PersistentDataType.STRING, color.toString());
         } else {
@@ -62,7 +62,7 @@ public class PacketTeamHandler implements GlowColorHandler {
     }
 
     @Override
-    public void setTransientColor(Entity entity, NamedTextColor color, @Nullable Long duration) {
+    public synchronized void setTransientColor(Entity entity, NamedTextColor color, @Nullable Long duration) {
         ScoreboardTeam applicableTeam = getApplicableTeam(entity);
         if (applicableTeam != null) {
             removeEntry(applicableTeam, entity);
@@ -73,17 +73,19 @@ public class PacketTeamHandler implements GlowColorHandler {
 
         if (duration != null) {
             entity.getScheduler().runDelayed(LumaGlowAPI.getInstance(), (task) -> {
-                ScoreboardTeam currentTeam = getApplicableTeam(entity);
-                if (currentTeam != null && currentTeam.equals(team)) {
-                    removeEntry(currentTeam, entity);
-                    update(entity);
+                synchronized (this) {
+                    ScoreboardTeam currentTeam = getApplicableTeam(entity);
+                    if (currentTeam != null && currentTeam.equals(team)) {
+                        removeEntry(currentTeam, entity);
+                        update(entity);
+                    }
                 }
             }, null, duration);
         }
     }
 
     @Override
-    public void removeColor(Entity entity) {
+    public synchronized void removeColor(Entity entity) {
         if (Bukkit.isOwnedByCurrentRegion(entity)) {
             entity.getPersistentDataContainer().remove(COLOR_KEY);
         } else {
@@ -101,13 +103,13 @@ public class PacketTeamHandler implements GlowColorHandler {
     }
 
     @Override
-    public void update(Entity entity) {
+    public synchronized void update(Entity entity) {
         ScoreboardTeam applicableTeam = getApplicableTeam(entity);
         update(applicableTeam, entity);
     }
 
     @Override
-    public @Nullable TextColor getColor(Entity entity) {
+    public synchronized @Nullable TextColor getColor(Entity entity) {
         ScoreboardTeam applicableTeam = getApplicableTeam(entity);
         if (applicableTeam != null) {
             return applicableTeam.defaultDisplay().playerColor();
@@ -123,17 +125,18 @@ public class PacketTeamHandler implements GlowColorHandler {
     }
 
     private void update(ScoreboardTeam applicable, Entity entity) {
-        if (applicable != null && transientTeams.contains(applicable)) {
-            removeEntry(applicable, entity);
-        }
-
         NamedTextColor newColor = getStoredColor(entity);
         if (newColor == null) {
             newColor = (NamedTextColor) getDefaultColor(entity);
         }
 
-        if (newColor != null) {
-            addEntry(getTeam(newColor), entity);
+        ScoreboardTeam target = newColor != null ? getTeam(newColor) : null;
+        if (applicable != null && !applicable.equals(target)) {
+            removeEntry(applicable, entity);
+        }
+
+        if (target != null) {
+            addEntry(target, entity);
         }
     }
 

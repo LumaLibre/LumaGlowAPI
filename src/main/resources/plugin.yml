@@ -29,6 +29,11 @@ permissions:
     default: op
     children:
       lumaglowapi.command: true
+  lumaglowapi.command.tracking:
+    description: Allows choosing whether effect markers ride or follow players
+    default: op
+    children:
+      lumaglowapi.command: true
   lumaglowapi.command.reload:
     description: Allows reloading of the config
     default: op

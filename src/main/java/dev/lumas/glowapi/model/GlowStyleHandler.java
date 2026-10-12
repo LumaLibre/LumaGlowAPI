@@ -10,6 +10,7 @@ import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextColor;
 import org.bukkit.Bukkit;
 import org.bukkit.Color;
+import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.entity.Entity;
@@ -58,6 +59,7 @@ public final class GlowStyleHandler implements GlowColorHandler {
         int preferredId = 15;
         boolean spatialClear;
         @Nullable UUID markerId;
+        @Nullable MarkerTracking markerTracking;
         int encoded;
         int effectKey;
         boolean spatialSolid;
@@ -107,6 +109,8 @@ public final class GlowStyleHandler implements GlowColorHandler {
     }
 
     private static final int VIEWER_CHECK_TICKS = 20;
+    // A following marker further than this from its entity (e.g. after a teleport) is respawned.
+    private static final double FOLLOW_RESPAWN_DISTANCE_SQUARED = 8.0 * 8.0;
     private static final MarkerCleanup MARKER_CLEANUP = new MarkerCleanup(
             Bukkit::getEntity, Bukkit::isOwnedByCurrentRegion,
             () -> LumaGlowAPI.getInstance().isEnabled(),
@@ -246,6 +250,7 @@ public final class GlowStyleHandler implements GlowColorHandler {
         lines.add("Team handler: " + root().getClass().getSimpleName());
         lines.add("Plugin-assigned team color: " + delegate.getColor(entity));
         lines.add("Spatial mode: " + spatialIdentification());
+        lines.add("Marker tracking: " + tracking());
         if (l != null && l.id >= 0) {
             lines.add("Effect identity: " + l.id + " (" + ID_COLORS.get(l.id) + "), payload: "
                     + String.format("%06X", l.encoded & 0xffffff));
@@ -263,8 +268,8 @@ public final class GlowStyleHandler implements GlowColorHandler {
         if (!(style instanceof GlowStyle.Effect)) {
             lines.add("Result: this player has an ordinary color, not a custom shader effect.");
         } else if (!entity.isGlowing()) {
-            lines.add("Result: no effect marker is emitted while the server glowing flag is off.");
-            lines.add("Viewer-only glow from another plugin does not enable this marker.");
+            lines.add("Result: no effect marker exists while the server glowing flag is off.");
+            lines.add("Viewer-only glow from another plugin does not spawn this marker.");
         } else if (l == null || l.id < 0 || marker == null) {
             lines.add("Result: custom effect selected but its marker is missing.");
         } else if (spatialIdentification() && !l.spatialClear) {
@@ -346,6 +351,11 @@ public final class GlowStyleHandler implements GlowColorHandler {
         return LumaGlowAPI.getOkaeriConfig().getEffects().isSpatialIdentification();
     }
 
+    private static MarkerTracking tracking() {
+        MarkerTracking tracking = LumaGlowAPI.getOkaeriConfig().getEffects().getMarkerTracking();
+        return tracking == null ? MarkerTracking.RIDE : tracking;
+    }
+
     private int allocateId() {
         int[] users = new int[ID_COLORS.size()];
         for (Live l : live.values()) {
@@ -369,14 +379,30 @@ public final class GlowStyleHandler implements GlowColorHandler {
         return best;
     }
 
+    /**
+     * The entity's effect marker, if one currently exists and is usable from this region.
+     */
+    public @Nullable ItemDisplay marker(@NotNull Entity entity) {
+        Live l = live.get(entity.getUniqueId());
+        return l == null ? null : findMarker(entity, l);
+    }
+
     private static @Nullable ItemDisplay findMarker(Entity entity, Live l) {
-        if (l.markerId == null) {
+        if (l.markerId == null || l.markerTracking != tracking()) {
             return null;
         }
-        for (Entity passenger : entity.getPassengers()) {
-            if (passenger instanceof ItemDisplay display && l.markerId.equals(passenger.getUniqueId())) {
-                return display.isValid() ? display : null;
+        if (l.markerTracking == MarkerTracking.RIDE) {
+            for (Entity passenger : entity.getPassengers()) {
+                if (passenger instanceof ItemDisplay display && l.markerId.equals(passenger.getUniqueId())) {
+                    return display.isValid() ? display : null;
+                }
             }
+            return null;
+        }
+        if (Bukkit.getEntity(l.markerId) instanceof ItemDisplay display && display.isValid()
+                && Bukkit.isOwnedByCurrentRegion(display) && display.getWorld().equals(entity.getWorld())
+                && display.getLocation().distanceSquared(entity.getLocation()) <= FOLLOW_RESPAWN_DISTANCE_SQUARED) {
+            return display;
         }
         return null;
     }
@@ -387,30 +413,39 @@ public final class GlowStyleHandler implements GlowColorHandler {
         MARKER_CLEANUP.remove(stray);
     }
 
+    /**
+     * Brings the marker in line with the entity: it exists only while the entity is glowing,
+     * and is spawned or removed here as that changes.
+     */
     private void ensureMarker(Entity entity, Live l, int encoded) {
-        ItemDisplay riding = findMarker(entity, l);
-        if (riding != null) {
+        if (l.task == null && entity.isValid()) {
+            // The task outlives the marker so it can spawn one as soon as the entity starts glowing.
+            l.task = entity.getScheduler().runAtFixedRate(LumaGlowAPI.getInstance(),
+                    task -> tick(entity, l), () -> {
+                        live.remove(entity.getUniqueId(), l);
+                        dropStray(l);
+                    }, 1L, 1L);
+        }
+        ItemDisplay existing = entity.isGlowing() ? findMarker(entity, l) : null;
+        if (existing != null) {
             if (l.encoded != encoded) {
-                riding.setGlowColorOverride(Color.fromRGB(encoded & 0xFFFFFF));
+                existing.setGlowColorOverride(Color.fromRGB(encoded & 0xFFFFFF));
                 l.encoded = encoded;
             }
-            updateMarkerModel(riding, l);
-            mirrorGlow(entity, riding, l);
+            updateMarkerModel(existing, l);
+            mirrorGlow(entity, existing, l);
             return;
         }
         dropStray(l);
-        MARKER_CLEANUP.removeStalePassengers(entity, MARKER_TAG, null);
         l.encoded = encoded;
-        if (!entity.isValid() || entity.isDead()) {
+        if (!entity.isGlowing() || !entity.isValid() || entity.isDead()) {
             return;
         }
-        ItemDisplay display = spawnMarker(entity, encoded, l);
+        MARKER_CLEANUP.removeStalePassengers(entity, MARKER_TAG, null);
+        MarkerTracking tracking = tracking();
+        ItemDisplay display = spawnMarker(entity, encoded, l, tracking);
         l.markerId = display.getUniqueId();
-
-        if (l.task == null) {
-            l.task = entity.getScheduler().runAtFixedRate(LumaGlowAPI.getInstance(),
-                    task -> tick(entity, l), () -> live.remove(entity.getUniqueId()), 1L, 1L);
-        }
+        l.markerTracking = tracking;
     }
 
     private void tick(Entity entity, Live l) {
@@ -425,7 +460,7 @@ public final class GlowStyleHandler implements GlowColorHandler {
                 delegate.setTransientColor(entity, ID_COLORS.get(l.id), null);
             }
         }
-        ItemDisplay display = findMarker(entity, l);
+        ItemDisplay display = entity.isGlowing() ? findMarker(entity, l) : null;
         if (display != null) {
             if (spatialIdentification() && !l.spatialSolid) {
                 int encoded = ((0x20 | l.id) << 16) | (l.encoded & 0xffff);
@@ -436,7 +471,7 @@ public final class GlowStyleHandler implements GlowColorHandler {
             }
             updateMarkerModel(display, l);
             mirrorGlow(entity, display, l);
-            follow(entity, display);
+            follow(entity, display, l.markerTracking);
             if (++l.ticks % VIEWER_CHECK_TICKS == 0) {
                 reconcileViewers(display);
             }
@@ -485,11 +520,11 @@ public final class GlowStyleHandler implements GlowColorHandler {
         }
     }
 
-    private ItemDisplay spawnMarker(Entity entity, int encoded, Live l) {
+    private ItemDisplay spawnMarker(Entity entity, int encoded, Live l, MarkerTracking tracking) {
         ItemStack stack = markerStack(l);
 
         boolean assumePackLoaded = LumaGlowAPI.getOkaeriConfig().getEffects().isAssumePackLoaded();
-        Transformation transform = markerTransform(entity);
+        Transformation transform = markerTransform(entity, tracking);
         ItemDisplay display = entity.getWorld().spawn(entity.getLocation(), ItemDisplay.class, d -> {
             if (spatialIdentification()) {
                 d.setRotation(0f, 0f);
@@ -513,7 +548,9 @@ public final class GlowStyleHandler implements GlowColorHandler {
             d.setVisibleByDefault(assumePackLoaded);
         });
 
-        entity.addPassenger(display);
+        if (tracking == MarkerTracking.RIDE) {
+            entity.addPassenger(display);
+        }
 
         if (!assumePackLoaded) {
             reconcileViewers(display);
@@ -539,27 +576,38 @@ public final class GlowStyleHandler implements GlowColorHandler {
         }
     }
 
-    private static Transformation markerTransform(Entity entity) {
+    private static Transformation markerTransform(Entity entity, MarkerTracking tracking) {
+        // A rider sits at the entity's passenger attachment point (its height); a follower sits at its feet.
+        float base = tracking == MarkerTracking.RIDE ? -(float) entity.getHeight() : 0f;
         if (spatialIdentification()) {
-            return new Transformation(new Vector3f(0f, -(float) entity.getHeight() + 1.0f, 0f),
+            return new Transformation(new Vector3f(0f, base + 1.0f, 0f),
                     new AxisAngle4f(), new Vector3f(2.0f), new AxisAngle4f());
         }
         float gap = (float) LumaGlowAPI.getOkaeriConfig().getEffects().getMarkerGap();
         float scale = Math.max(1.0f, (float) entity.getWidth() + 0.4f);
 
         return new Transformation(
-                new Vector3f(0f, -(float) entity.getHeight() + gap, 0f),
+                new Vector3f(0f, base + gap, 0f),
                 new AxisAngle4f(),
                 new Vector3f(scale),
                 new AxisAngle4f());
     }
 
-    private static void follow(Entity entity, ItemDisplay marker) {
-        Transformation wanted = markerTransform(entity);
+    private static void follow(Entity entity, ItemDisplay marker, MarkerTracking tracking) {
+        Transformation wanted = markerTransform(entity, tracking);
         Transformation current = marker.getTransformation();
         if (Math.abs(current.getTranslation().y - wanted.getTranslation().y) > 0.01f
                 || Math.abs(current.getScale().x - wanted.getScale().x) > 0.01f) {
             marker.setTransformation(wanted);
+        }
+        if (tracking == MarkerTracking.FOLLOW) {
+            Location target = entity.getLocation();
+            Location position = marker.getLocation();
+            if (target.distanceSquared(position) > 1.0E-6) {
+                // Keep the marker's own rotation; spatial identification relies on it staying fixed.
+                target.setRotation(position.getYaw(), position.getPitch());
+                marker.teleportAsync(target);
+            }
         }
     }
 

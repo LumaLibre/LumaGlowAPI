@@ -11,10 +11,14 @@ import dev.lumas.glowapi.papi.ColorPlaceholder;
 import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
+import org.bukkit.entity.Entity;
+import org.bukkit.entity.ItemDisplay;
 import org.bukkit.entity.Player;
 
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 
 @Register(Autowire.SUBCOMMAND)
 @CommandMeta(
@@ -36,16 +40,20 @@ public class DiagnoseCommand implements SubCommand {
         target.getScheduler().run(plugin, task -> {
             List<String> lines = new ArrayList<>();
             lines.add("Glow diagnostics for " + target.getName());
+            Set<Entity> markers = new LinkedHashSet<>();
             if (GlowColorManager.getInstance().handler() instanceof GlowStyleHandler handler) {
                 lines.addAll(handler.diagnostics(target));
+                ItemDisplay marker = handler.marker(target);
+                if (marker != null) markers.add(marker);
             }
             String placeholder = new ColorPlaceholder().onPlaceholderRequest(target, "color");
             lines.add("TAB placeholder output: " + (placeholder == null || placeholder.isEmpty()
                     ? "empty (TAB controls formatting)" : placeholder.replace('\u00a7', '&')));
             lines.add("Server-generated pack SHA-1: " + PackService.getInstance().hash().orElse("not built"));
             lines.add("Assume pack loaded: " + LumaGlowAPI.getOkaeriConfig().getEffects().isAssumePackLoaded());
-            var markers = target.getPassengers().stream()
-                    .filter(entity -> entity.getScoreboardTags().contains(GlowStyleHandler.MARKER_TAG)).toList();
+            target.getPassengers().stream()
+                    .filter(entity -> entity.getScoreboardTags().contains(GlowStyleHandler.MARKER_TAG))
+                    .forEach(markers::add);
             if (sender instanceof Player viewer) {
                 viewer.getScheduler().run(plugin, viewerTask -> {
                     for (var marker : markers) {

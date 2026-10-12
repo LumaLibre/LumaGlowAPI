@@ -2,10 +2,12 @@ package dev.lumas.glowapi.config;
 
 import dev.lumas.glowapi.effect.EffectPreset;
 import dev.lumas.glowapi.model.GlowStyle;
+import dev.lumas.glowapi.model.MarkerTracking;
 import eu.okaeri.configs.OkaeriConfig;
 import eu.okaeri.configs.annotation.Comment;
 import eu.okaeri.configs.annotation.CustomKey;
 import lombok.Getter;
+import lombok.Setter;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
 
@@ -184,6 +186,17 @@ public class Config extends OkaeriConfig {
                 "Legacy offset of the invisible marker model relative to the entity's feet."
         })
         private double markerGap = -0.5;
+
+        @Setter
+        @CustomKey("marker-tracking")
+        @Comment({
+                "How the invisible effect marker keeps up with a glowing player.",
+                "  RIDE    the marker rides the player as a passenger (smoothest).",
+                "  FOLLOW  the marker is teleported to the player every tick and is never a passenger,",
+                "          for compatibility with plugins that mount, dismount or teleport players.",
+                "Change at runtime with /glow tracking <ride|follow>."
+        })
+        private MarkerTracking markerTracking = MarkerTracking.RIDE;
 
         @CustomKey("pack-server")
         private PackServer packServer = new PackServer();
